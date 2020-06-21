@@ -13,6 +13,7 @@ After installing the `internetarchive` python module, setup is required.  Run `i
 copy live-code-uploader-template.ini to live-code-uploader.ini and fill out the required values
 --> in the archive.org.uploader section
 -----> csv.location - location of the CSV file that will be used by the archive.org uploader
+-----> test - true if testing, false if not - will put item uploaded into the test collection where it will be auto-deleted after 30 days
 
 internet archive bulk upload csv file format
 

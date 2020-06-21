@@ -24,9 +24,14 @@ with open(archive_org_config['csv.location'], mode='r') as csv_file:
         creator = row[3]
         date_rec = row[4]
         subjects = []
+        collections = []
 
         for n in range(5, len(row)):
             subjects.append(row[n])
+
+        collections.append('toplap')
+        if archive_org_config['test']:
+            collections.append('test_collection')
 
         try:
 
@@ -37,14 +42,14 @@ with open(archive_org_config['csv.location'], mode='r') as csv_file:
             #  'uploader': 'scott@fradkin.com', 'publicdate': '2020-04-11 22:25:32', 'addeddate': '2020-04-11 22:25:32'}
 
 
-            meta_data = dict(mediatype='movies', collection='toplap', creator=creator, date=date_rec, description=description,
+            meta_data = dict(mediatype='movies', collection=collections, creator=creator, date=date_rec, description=description,
                             licenseurl='https://creativecommons.org/licenses/by-nc-sa/4.0/', subject=subjects, title=title)
 
-            print('uploading file: ' + file_id)
+            print(f'uploading file: {file_id}')
 
             result = upload(file_id, files=[file_loc], metadata=meta_data, verbose=True)
 
-            print('completed uploading file: ' + file_id)
+            print(f'completed uploading file: {file_id}')
         except Exception as e:
-            print('An error occurred: {}'.format(e))
+            print(f'An error occurred: {e}')
             pass
