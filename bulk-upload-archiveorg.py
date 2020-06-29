@@ -2,6 +2,9 @@ from internetarchive import upload
 import csv
 import configparser
 
+MEDIA_TYPE = 'movies'
+LICENSE = 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
+
 config = configparser.ConfigParser()
 config.read('live-code-uploader.ini')
 archive_org_config = config['archive.org.upload']
@@ -42,8 +45,8 @@ with open(archive_org_config['csv.location'], mode='r') as csv_file:
             #  'uploader': 'scott@fradkin.com', 'publicdate': '2020-04-11 22:25:32', 'addeddate': '2020-04-11 22:25:32'}
 
 
-            meta_data = dict(mediatype='movies', collection=collections, creator=creator, date=date_rec, description=description,
-                            licenseurl='https://creativecommons.org/licenses/by-nc-sa/4.0/', subject=subjects, title=title)
+            meta_data = dict(mediatype=MEDIA_TYPE, collection=collections, creator=creator, date=date_rec, description=description,
+                            licenseurl=LICENSE, subject=subjects, title=title)
 
             print(f'uploading file: {file_id}')
 
