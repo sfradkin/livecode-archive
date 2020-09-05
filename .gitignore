@@ -1,3 +1,4 @@
 .python-version
 live-code-uploader.ini
 *.code-workspace
+bulk-upload.csv
