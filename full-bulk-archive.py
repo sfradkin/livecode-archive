@@ -57,7 +57,7 @@ def uploadToYoutube(youtube_config, file_path, row_data, templates):
     YOUTUBE_API_VERSION = "v3"
     MUSIC = 10
     PRIVATE = "private"
-    LICENSE = "creativeCommon"
+    LICENSE = "creativeCommons"
     
     newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
                                                     token_uri=youtube_config['token_uri'], 
@@ -66,16 +66,19 @@ def uploadToYoutube(youtube_config, file_path, row_data, templates):
 
     google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
 
+    desc = templateReplaceDesc(templates, row_data)
+    desc = desc.replace("--", chr(10) + chr(13)),
+
     body=dict(
         snippet=dict(
             title=templateReplaceTitle(templates, row_data),
-            description=templateReplaceDesc(templates, row_data),
+            description=desc,
             tags=row_data['tags'].split(","),
             categoryId=MUSIC
         ),
         status=dict(
-            privacyStatus=PRIVATE #,
-            #licence=LICENSE
+            privacyStatus=PRIVATE,
+            licence=LICENSE
         ),
         recordingDetails=dict(
             recordingDate=row_data['performance_date']
@@ -102,7 +105,7 @@ def uploadToArchiveOrg(archive_org_config, file_path, row_data, templates, archi
     HTML_WRAPPER_POST = '</span>'
 
     description = HTML_WRAPPER_PRE + templateReplaceDesc(templates, row_data) + HTML_WRAPPER_POST
-    description.replace("\r\n", "<br />")
+    description = description.replace("--", "<br />")
 
     file_id = archivePrefix + row_data['archive_id']
     
@@ -159,10 +162,16 @@ for row in csv_rows[1:]:
     new_path = editFile(row_data['file_edit'], row_data['files'], row_data['times'])
 
     # upload to youtube
-    video_id = uploadToYoutube(youtube_config, new_path, row_data, templates)
+    if (global_config['skipYoutube'] != 'True'):
+        video_id = uploadToYoutube(youtube_config, new_path, row_data, templates)
+    else:
+        print("skipping youtube upload")
 
     # add video to playlist
     #addToPlaylist(playlist_id, video_id)
 
     # upload to archive.org
-    uploadToArchiveOrg(archive_org_config, new_path, row_data, templates, archivePrefix)
+    if (global_config['skipArchiveOrg'] != 'True'):
+        uploadToArchiveOrg(archive_org_config, new_path, row_data, templates, archivePrefix)
+    else:
+        print("skipping archive.org upload")
