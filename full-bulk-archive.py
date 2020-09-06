@@ -67,7 +67,7 @@ def uploadToYoutube(youtube_config, file_path, row_data, templates):
     google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
 
     desc = templateReplaceDesc(templates, row_data)
-    desc = desc.replace("--", chr(10) + chr(13)),
+    desc = desc.replace(" -- ", chr(13) + chr(10) + chr(13) + chr(10))
 
     body=dict(
         snippet=dict(
@@ -92,6 +92,8 @@ def uploadToYoutube(youtube_config, file_path, row_data, templates):
         media_body=MediaFileUpload(file_path)
     )
 
+    print(f"uploading: {file_path}")
+
     response = insert_request.execute()
 
     print(response)
@@ -105,7 +107,7 @@ def uploadToArchiveOrg(archive_org_config, file_path, row_data, templates, archi
     HTML_WRAPPER_POST = '</span>'
 
     description = HTML_WRAPPER_PRE + templateReplaceDesc(templates, row_data) + HTML_WRAPPER_POST
-    description = description.replace("--", "<br />")
+    description = description.replace(" -- ", "<br /><br />")
 
     file_id = archivePrefix + row_data['archive_id']
     
@@ -114,11 +116,11 @@ def uploadToArchiveOrg(archive_org_config, file_path, row_data, templates, archi
                          description=description,
                          licenseurl=LICENSE_URL, subject=row_data['tags'].split(","), title=templateReplaceTitle(templates, row_data))
 
-        print('uploading file: ' + file_id)
+        print(f'uploading file: {file_id}')
 
         result = upload(file_id, files=[file_path], metadata=meta_data, verbose=True)
 
-        print('completed uploading file: ' + file_id)
+        print(f'completed uploading file: {file_id}')
     except Exception as e:
         print(f'An error occurred: {e}')
         pass
