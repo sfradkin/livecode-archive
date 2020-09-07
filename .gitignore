@@ -3,3 +3,4 @@ live-code-uploader.ini
 *.code-workspace
 bulk-upload.csv
 *-test.py
+list.txt

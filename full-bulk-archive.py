@@ -7,9 +7,10 @@ from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 from string import Template
 from internetarchive import upload
-from moviepy.editor import VideoFileClip # pip install moviepy
+from moviepy.editor import VideoFileClip, concatenate_videoclips # pip install moviepy
 import ffmpeg # pip install ffmpeg-python
 import sys
+import subprocess
 
 expectedFields = ['archiveid','fileedit','times','files','artistname','userdesc','location','performancedate','performancetime','algorave','tech','tags']
 
@@ -38,6 +39,46 @@ def extractKeys(templateStr):
     expr = re.compile(r"\$\w+")
     return expr.findall(templateStr)
 
+# parses a video file, outputs some details, returns info required to re-encode the final video
+def getVideoDetails(videoPath):
+    # use ffprobe to get the bitrate of the stream
+    # flv files don't seem to respond with a separate bitrate for the audio and video streams, so we just grab the overall bitrate
+    try:
+        probe = ffmpeg.probe(videoPath)
+    except ffmpeg.Error as e:
+        print(e.stderr, file=sys.stderr)
+        sys.exit(1)
+
+    # overall bitrate can be found in probe['format']['bit_rate']
+    # we also find the audio and video codecs used.  this is most likely going to be 'h264' and 'aac' for flv files, but we want to
+    # be sure
+
+    video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+
+    overall_bitrate = int(probe['format']['bit_rate'])
+    video_codec = video_stream['codec_name']
+    audio_codec = audio_stream['codec_name']
+    audio_bitrate = 0
+    video_bitrate = 0
+
+    # now do some minimal calculation to generate an audio and video bitrate to use when re-encoding the file after clipping
+    if overall_bitrate < 1000000:
+        audio_bitrate = 128000
+    else:
+        audio_bitrate = 256000
+
+    video_bitrate = overall_bitrate - audio_bitrate
+
+    # moviepy wants the bitrates as strings like '128k', etc... so now we convert the integer bitrates into that string
+    vid_br_str = str(video_bitrate)[:-3] + 'k'
+    aud_br_str = str(audio_bitrate)[:-3] + 'k'
+
+    print(f"things about the video: overall_bitrate: {overall_bitrate}, audio_bitrate: {audio_bitrate}, video_bitrate: {video_bitrate}, audio_codec: {audio_codec}, ")
+    print(f"video_codec: {video_codec}, vid_br_str: {vid_br_str}, aud_br_str: {aud_br_str}")
+
+    return audio_codec, video_codec, vid_br_str, aud_br_str
+
 # edit video if needed and return the path to the new file
 def editFile(editType, videoPath, times):
     if editType == 'none':
@@ -51,41 +92,7 @@ def editFile(editType, videoPath, times):
 
         print(f"processing video: {videoPath}, editType: {editType}, trimming at: {trim_front_time} and {trim_end_time}")
 
-        # use ffprobe to get the bitrate of the stream
-        # flv files don't seem to respond with a separate bitrate for the audio and video streams, so we just grab the overall bitrate
-        try:
-            probe = ffmpeg.probe(videoPath)
-        except ffmpeg.Error as e:
-            print(e.stderr, file=sys.stderr)
-            sys.exit(1)
-
-        # overall bitrate can be found in probe['format']['bit_rate']
-        # we also find the audio and video codecs used.  this is most likely going to be 'h264' and 'aac' for flv files, but we want to
-        # be sure
-
-        video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
-        audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
-
-        overall_bitrate = int(probe['format']['bit_rate'])
-        video_codec = video_stream['codec_name']
-        audio_codec = audio_stream['codec_name']
-        audio_bitrate = 0
-        video_bitrate = 0
-
-        # now do some minimal calculation to generate an audio and video bitrate to use when re-encoding the file after clipping
-        if overall_bitrate < 1000000:
-            audio_bitrate = 128000
-        else:
-            audio_bitrate = 256000
-
-        video_bitrate = overall_bitrate - audio_bitrate
-
-        # moviepy wants the bitrates as strings like '128k', etc... so now we convert the integer bitrates into that string
-        vid_br_str = str(video_bitrate)[:-3] + 'k'
-        aud_br_str = str(audio_bitrate)[:-3] + 'k'
-
-        print(f"things about the video: overall_bitrate: {overall_bitrate}, audio_bitrate: {audio_bitrate}, video_bitrate: {video_bitrate}, audio_codec: {audio_codec}, ")
-        print(f"video_codec: {video_codec}, vid_br_str: {vid_br_str}, aud_br_str: {aud_br_str}")
+        audio_codec, video_codec, vid_br_str, aud_br_str = getVideoDetails(videoPath)
 
         clip = VideoFileClip(videoPath).subclip(trim_front_time, trim_end_time)
 
@@ -94,6 +101,36 @@ def editFile(editType, videoPath, times):
         clip.close()
 
         print(f"completed trimming file.  new file at {edited_video_file}")
+
+        return edited_video_file
+    elif editType == 'merge':
+        # this will simply merge the videos in the order the files are specified in the CSV
+        # more complex actions such as trimming individual videos or the resulting video will be added later if needed
+        # bitrate and codec details will be the same for all videos we are merging together, so we only look at the first video
+
+        # get an array of files, videoPath in this case should be a list of files
+        file_arr = videoPath.split(",")
+
+        video_file_no_ext = file_arr[0][:-4]
+        merged_video_file = video_file_no_ext + "-merged.flv"
+
+        print(f"processing videos: {videoPath}, editType: {editType}, merging videos in order")
+
+        audio_codec, video_codec, vid_br_str, aud_br_str = getVideoDetails(file_arr[0])
+
+        ##### Directly use FFMPEG to concat files due to some odd error with moviepy
+
+        with open('list.txt','w') as f:
+            for fp in file_arr:
+                f.write(f'file {fp}\n')
+
+        # run ffmpeg to concat videos 
+        command = "ffmpeg -f concat -safe 0 -i list.txt -c copy " + merged_video_file
+        subprocess.call(command, shell=True)
+
+        print(f"completed merging files.  new file at {merged_video_file}")
+
+        return merged_video_file
     else:
         pass
 
