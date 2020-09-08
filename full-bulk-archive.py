@@ -149,7 +149,7 @@ def uploadToYoutube(youtube_config, file_path, row_data, templates):
     YOUTUBE_API_VERSION = "v3"
     MUSIC = 10
     PRIVATE = "private"
-    LICENSE = "creativeCommons"
+    LICENSE = "creativeCommon"
     
     newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
                                                     token_uri=youtube_config['token_uri'], 
@@ -217,6 +217,75 @@ def uploadToArchiveOrg(archive_org_config, file_path, row_data, templates, archi
         print(f'An error occurred: {e}')
         pass
 
+def createYoutubePlaylist(youtube_config, playlist_title, playlist_description):
+    YOUTUBE_API_SERVICE_NAME = "youtube"
+    YOUTUBE_API_VERSION = "v3"
+    
+    newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
+                                                    token_uri=youtube_config['token_uri'], 
+                                                    client_id=youtube_config['client_id'], 
+                                                    client_secret=youtube_config['client_secret'])
+
+    google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
+
+    desc = playlist_description.replace(" -- ", chr(13) + chr(10) + chr(13) + chr(10))
+
+    body=dict(
+        snippet=dict(
+            title=playlist_title,
+            description=desc
+        ),
+        status=dict(
+            privacyStatus="private"
+        )
+    )
+
+    # Call the API's videos.insert method to create and upload the video.
+    insert_request = google_service.playlists().insert(
+        part=",".join(body.keys()),
+        body=body
+    )
+
+    print(f"inserting playlist")
+
+    response = insert_request.execute()
+
+    print(response)
+    return response['id']
+
+def addToPlaylist(youtube_config, playlist_id, video_id):
+    YOUTUBE_API_SERVICE_NAME = "youtube"
+    YOUTUBE_API_VERSION = "v3"
+    
+    newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
+                                                    token_uri=youtube_config['token_uri'], 
+                                                    client_id=youtube_config['client_id'], 
+                                                    client_secret=youtube_config['client_secret'])
+
+    google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
+
+    body=dict(
+        snippet=dict(
+            playlist_id=playlist_id,
+            resource_id=dict (
+                kind="youtube#video",
+                videoId=video_id
+            )
+        )
+    )
+
+    # Call the API's videos.insert method to create and upload the video.
+    insert_request = google_service.playlistItems().insert(
+        part=",".join(body.keys()),
+        body=body
+    )
+
+    print(f"inserting video: {video_id} into playlist: {playlist_id}")
+
+    response = insert_request.execute()
+
+    print(response)
+
 youtube_config, archive_org_config, global_config = readProps()
 
 csv_rows = readCsv(global_config['csv.location'])
@@ -225,6 +294,11 @@ titleTemplate = csv_rows[0][0]
 descriptionTemplate = csv_rows[0][1]
 templates = {'title':titleTemplate, 'description':descriptionTemplate}
 archivePrefix = csv_rows[0][2]
+playlist_title = csv_rows[0][3]
+playlist_description = csv_rows[0][4]
+
+playlist_id = ""
+video_id = ""
 
 titleTemplateFields = extractKeys(titleTemplate)
 descriptionTemplateFields = extractKeys(descriptionTemplate)
@@ -232,7 +306,10 @@ descriptionTemplateFields = extractKeys(descriptionTemplate)
 print(f'title fields: {titleTemplateFields}, description fields: {descriptionTemplateFields}')
 
 # create playlist
-#playlist_id = createPlaylist()
+if (global_config['skipPlaylist'] != 'True'):
+    playlist_id = createYoutubePlaylist(youtube_config, playlist_title, playlist_description)
+else:
+    print("skipping youtube playlist creation")
 
 # loop through the rows
 for row in csv_rows[1:]:
@@ -262,7 +339,10 @@ for row in csv_rows[1:]:
         print("skipping youtube upload")
 
     # add video to playlist
-    #addToPlaylist(playlist_id, video_id)
+    if (global_config['skipPlaylist'] != 'True'):
+        addToPlaylist(youtube_config, playlist_id, video_id)
+    else:
+        print("skipping adding video to playlist")
 
     # upload to archive.org
     if (global_config['skipArchiveOrg'] != 'True'):
