@@ -1,3 +1,5 @@
+# This README requires significant updates, disregard the rest for now
+
 bulk upload of files to the internet archive
 
 This is a script that used to automate multiple uploads to the Internet Archive.  It will apply some defaults that have been used across

@@ -1,0 +1,4 @@
+title template,description template,archive prefix,playlist title, playlist description
+New Moon Stream 2020 - $artistname - $performancedate,New Moon Stream 2020 live performance by $artistname from $location \n $userdesc,new-moon-2020-
+archive id,file edit,times,files,artistname,userdesc,location,performancedate,performancetime,algorave,tech,tags
+blah,none/split/merge/trim,0:14/5:45,full/path/to/file,Blah,description,"New York, US",2020-08-20,15:00,Algorave London,tidalcycles/hydra,Blah/tidalcycles/hydra/new moon
