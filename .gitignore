@@ -1,6 +1,10 @@
 .python-version
 live-code-uploader.ini
 *.code-workspace
+bulk-upload-new-moon.csv
 bulk-upload.csv
 *-test.py
 list.txt
+test.json
+.stuff
+*-output.json
