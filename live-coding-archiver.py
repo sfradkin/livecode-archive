@@ -1,12 +1,12 @@
 # import configparser
 import csv
 #import re
-from googleapiclient.discovery import build, Resource
+from googleapiclient.discovery import build, Resource # google-api-python-client
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials
+from google.oauth2.credentials import Credentials # google-auth-oauthlib
 #from string import Template
-from internetarchive import upload
+from internetarchive import upload # internetarchive
 from moviepy.editor import VideoFileClip, concatenate_videoclips # pip install moviepy
 import ffmpeg # pip install ffmpeg-python
 import sys
@@ -15,6 +15,9 @@ import subprocess
 from utils.configreader import ConfigReader
 from utils.jsonloader import JsonLoader
 from utils.templater import Templater
+from utils.youtubeupload import YouTubeUpload
+
+import requests
 
 expectedFields = ['archiveid','fileedit','times','files','artistname','userdesc','location','performancedate','performancetime','algorave','tech','tags']
 
@@ -47,28 +50,38 @@ DEFAULT_TAGS_KEY = 'default_tags'
 
 livecode_config = ConfigReader.getConfig(INI_FILE_LOCATION)
 
-stream_metadata = JsonLoader.loadJsonMetadata(str(livecode_config[CONFIG_STREAM][STREAM_PROPS_JSON_LOC]))
+#stream_metadata = JsonLoader.loadJsonMetadata(str(livecode_config[CONFIG_STREAM][STREAM_PROPS_JSON_LOC]))
 
-# right now the results in the stream metadata are in reverse order.  This will probably change in the near future.
+headers = {'accept': 'application/json', 'Authorization': 'Api-Key ' + livecode_config[CONFIG_GLOBAL]['muxy_auth_token']}
+muxy_url = 'https://muxy.tidalcycles.org/streams/?event__id=' + livecode_config[CONFIG_GLOBAL]['muxy_event']
+
+print("retrieving livestream event metadata")
+
+stream_metadata = JsonLoader.loadJsonMetadataFromUrl(muxy_url, headers)
+
 number_of_slots = stream_metadata['count']
-results = stream_metadata['results'].reverse()
+print (f"number of slots in livestream: {number_of_slots}")
+results = stream_metadata['results']
 
 # get some global values
 templates = Templater(livecode_config[CONFIG_STREAM][VIDEO_TITLE_TEMPLATE_KEY], livecode_config[CONFIG_STREAM][VIDEO_DESCR_TEMPLATE_KEY])
-youtube_upload = YouTubeUpload(livecode_config[CONFIG_YOUTUBE])
-archiveorg_upload = ArchiveOrgUpload(livecode_config[CONFIG_ARCHIVE_ORG])
+#youtube_upload = YouTubeUpload(livecode_config[CONFIG_YOUTUBE])
+#need to create the archiveorg module
+#archiveorg_upload = ArchiveOrgUpload(livecode_config[CONFIG_ARCHIVE_ORG])
 
 for result in results:
+    print (f"processing stream: {result['url']}, {result['publisher_name']}")
     # check to see if this performance has videos
     result_recs = result['recordings']
     if len(result_recs) > 0:
-        
+        print ("more than 0 recording files")
         if len(result_recs) > 1:
             # if there's more than 1 video file for this performance then we need to merge them together
+            print ("greater than 1 recording files, passing for now")
             pass
         else:
             # grab data required and put into a dictionary with known keys
-
+            print ("exactly 1 recording file, archiving")
             result_data = {
                 'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + result['publisher_name'].lower().replace(" ", "-"),
                 'files' : result['recordings'][0],
@@ -80,11 +93,19 @@ for result in results:
                 'tags' : livecode_config[CONFIG_STREAM][DEFAULT_TAGS_KEY]                
             }
 
-            # invoke youtube upload
-            youtube_upload.uploadFile(result_data)
+            if (livecode_config[CONFIG_GLOBAL]['skipYoutube'] != 'True'):
+                # invoke youtube upload
+                video_id = youtube_upload.uploadFile(result_data)
+                print (f"added youtube video {video_id}")
+            else:
+                print("skipping youtube upload")
 
-            # invoke archive.org upload
-            archiveorg_upload.uploadFile(result_data)
+            # upload to archive.org
+            if (livecode_config[CONFIG_GLOBAL]['skipArchiveOrg'] != 'True'):
+                # invoke archive.org upload
+                archiveorg_upload.uploadFile(result_data)
+            else:
+                print("skipping archive.org upload")     
     else:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")
 
@@ -340,66 +361,66 @@ def addToPlaylist(youtube_config, playlist_id, video_id):
 
     print(response)
 
-youtube_config, archive_org_config, global_config = readProps()
+# youtube_config, archive_org_config, global_config = readProps()
 
-csv_rows = readCsv(global_config['csv.location'])
-# the first row is specific configuration for archiving, all subsequent rows are the actual performance data
-titleTemplate = csv_rows[0][0]
-descriptionTemplate = csv_rows[0][1]
-templates = {'title':titleTemplate, 'description':descriptionTemplate}
-archivePrefix = csv_rows[0][2]
-playlist_title = csv_rows[0][3]
-playlist_description = csv_rows[0][4]
+# csv_rows = readCsv(global_config['csv.location'])
+# # the first row is specific configuration for archiving, all subsequent rows are the actual performance data
+# titleTemplate = csv_rows[0][0]
+# descriptionTemplate = csv_rows[0][1]
+# templates = {'title':titleTemplate, 'description':descriptionTemplate}
+# archivePrefix = csv_rows[0][2]
+# playlist_title = csv_rows[0][3]
+# playlist_description = csv_rows[0][4]
 
-playlist_id = ""
-video_id = ""
+# playlist_id = ""
+# video_id = ""
 
-titleTemplateFields = extractKeys(titleTemplate)
-descriptionTemplateFields = extractKeys(descriptionTemplate)
+# titleTemplateFields = extractKeys(titleTemplate)
+# descriptionTemplateFields = extractKeys(descriptionTemplate)
 
-print(f'title fields: {titleTemplateFields}, description fields: {descriptionTemplateFields}')
+# print(f'title fields: {titleTemplateFields}, description fields: {descriptionTemplateFields}')
 
-# create playlist
-if (global_config['skipPlaylist'] != 'True'):
-    playlist_id = createYoutubePlaylist(youtube_config, playlist_title, playlist_description)
-else:
-    print("skipping youtube playlist creation")
+# # create playlist
+# if (global_config['skipPlaylist'] != 'True'):
+#     playlist_id = createYoutubePlaylist(youtube_config, playlist_title, playlist_description)
+# else:
+#     print("skipping youtube playlist creation")
 
-# loop through the rows
-for row in csv_rows[1:]:
-    # now do everything...
-    row_data = {
-        'archive_id' : row[0],
-        'file_edit' : row[1],
-        'times' : row[2],
-        'files' : row[3],
-        'artist_name' : row[4],
-        'user_desc' : row[5],
-        'location' : row[6],
-        'performance_date' : row[7],
-        'performance_time' : row[8],
-        'algorave' : row[9],
-        'tech' : row[10],
-        'tags' : row[11]
-    }
+# # loop through the rows
+# for row in csv_rows[1:]:
+#     # now do everything...
+#     row_data = {
+#         'archive_id' : row[0],
+#         'file_edit' : row[1],
+#         'times' : row[2],
+#         'files' : row[3],
+#         'artist_name' : row[4],
+#         'user_desc' : row[5],
+#         'location' : row[6],
+#         'performance_date' : row[7],
+#         'performance_time' : row[8],
+#         'algorave' : row[9],
+#         'tech' : row[10],
+#         'tags' : row[11]
+#     }
 
-    # edit file and save
-    new_path = editFile(row_data['file_edit'], row_data['files'], row_data['times'])
+#     # edit file and save
+#     new_path = editFile(row_data['file_edit'], row_data['files'], row_data['times'])
 
-    # upload to youtube
-    if (global_config['skipYoutube'] != 'True'):
-        video_id = uploadToYoutube(youtube_config, new_path, row_data, templates)
-    else:
-        print("skipping youtube upload")
+#     # upload to youtube
+#     if (global_config['skipYoutube'] != 'True'):
+#         video_id = uploadToYoutube(youtube_config, new_path, row_data, templates)
+#     else:
+#         print("skipping youtube upload")
 
-    # add video to playlist
-    if (global_config['skipPlaylist'] != 'True'):
-        addToPlaylist(youtube_config, playlist_id, video_id)
-    else:
-        print("skipping adding video to playlist")
+#     # add video to playlist
+#     if (global_config['skipPlaylist'] != 'True'):
+#         addToPlaylist(youtube_config, playlist_id, video_id)
+#     else:
+#         print("skipping adding video to playlist")
 
-    # upload to archive.org
-    if (global_config['skipArchiveOrg'] != 'True'):
-        uploadToArchiveOrg(archive_org_config, new_path, row_data, templates, archivePrefix)
-    else:
-        print("skipping archive.org upload")
+#     # upload to archive.org
+#     if (global_config['skipArchiveOrg'] != 'True'):
+#         uploadToArchiveOrg(archive_org_config, new_path, row_data, templates, archivePrefix)
+#     else:
+#         print("skipping archive.org upload")

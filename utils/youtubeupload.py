@@ -3,7 +3,7 @@ from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 
-from templater import Templater
+from utils.templater import Templater
 
 class YouTubeUpload:
 

@@ -1,4 +1,5 @@
 import json
+import requests
 
 class JsonLoader:
     
@@ -10,3 +11,9 @@ class JsonLoader:
 
         # parse file
         return json.loads(data)
+
+    @classmethod
+    def loadJsonMetadataFromUrl(cls, url: str, headers: dict) -> dict:
+        r = requests.get(url, headers=headers)
+        print (f"returned from get: {r}")
+        return r.json()

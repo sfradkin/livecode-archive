@@ -8,3 +8,4 @@ list.txt
 test.json
 .stuff
 *-output.json
+__pycache__
