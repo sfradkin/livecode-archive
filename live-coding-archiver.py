@@ -70,13 +70,14 @@ def mergeFiles(files):
     audio_codec, video_codec, vid_br_str, aud_br_str = getVideoDetails(file_arr[0])
 
     ##### Directly use FFMPEG to concat files due to some odd error with moviepy
+    list_temp_file = temp_base_dir + 'list.txt'
 
-    with open('list.txt','w') as f:
+    with open(list_temp_file,'w') as f:
         for fp in file_arr:
             f.write(f'file {fp}\n')
 
     # run ffmpeg to concat videos 
-    command = "ffmpeg -f concat -safe 0 -i list.txt -c copy " + merged_video_file
+    command = "ffmpeg -f concat -safe 0 -i " + list_temp_file + " -c copy " + merged_video_file
     subprocess.call(command, shell=True)
 
     print(f"completed merging files.  new file at {merged_video_file}")
@@ -84,6 +85,9 @@ def mergeFiles(files):
     for file in file_arr:
         cleanupFile(file)
         print(f"cleaned up temp file: {file}")
+
+    # clean up list.txt
+    cleanupFile(list_temp_file)
 
     return merged_video_file
 
@@ -162,8 +166,8 @@ archiveorg_upload = ArchiveOrgUpload()
 processed_normal = 0
 processed_merge = 0
 
-processed_normal_limit = 1
-processed_merge_limit = 1
+processed_normal_limit = 0
+processed_merge_limit = 2
 
 for result in results:
     print (f"processing stream: {result['url']}, {result['publisher_name']}")
