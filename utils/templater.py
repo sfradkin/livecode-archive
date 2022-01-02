@@ -17,8 +17,8 @@ class Templater:
 
     @classmethod
     def replaceLbForYT(cls, the_string: str) -> str:
-        the_string.replace(" -- ", cls.LINE_BREAK_REPLACEMENT_YT)
+        return the_string.replace(" -- ", cls.LINE_BREAK_REPLACEMENT_YT)
 
     @classmethod
     def replaceLbForAO(cls, the_string: str) -> str:
-        the_string.replace(" -- ", cls.LINE_BREAK_REPLACEMENT_AO)
+        return the_string.replace(" -- ", cls.LINE_BREAK_REPLACEMENT_AO)

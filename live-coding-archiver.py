@@ -1,13 +1,13 @@
 # import configparser
-import csv
+#import csv
 #import re
-from googleapiclient.discovery import build, Resource # google-api-python-client
-from googleapiclient.http import MediaFileUpload
-from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials # google-auth-oauthlib
+#from googleapiclient.discovery import build, Resource # google-api-python-client
+#from googleapiclient.http import MediaFileUpload
+#from googleapiclient.errors import HttpError
+#from google.oauth2.credentials import Credentials # google-auth-oauthlib
 #from string import Template
 from internetarchive import upload # internetarchive
-from moviepy.editor import VideoFileClip, concatenate_videoclips # pip install moviepy
+#from moviepy.editor import VideoFileClip, concatenate_videoclips # pip install moviepy
 import ffmpeg # pip install ffmpeg-python
 import sys
 import subprocess
@@ -18,8 +18,120 @@ from utils.templater import Templater
 from utils.youtubeupload import YouTubeUpload
 
 import requests
+import os
+from tqdm import tqdm
 
-expectedFields = ['archiveid','fileedit','times','files','artistname','userdesc','location','performancedate','performancetime','algorave','tech','tags']
+#expectedFields = ['archiveid','fileedit','times','files','artistname','userdesc','location','performancedate','performancetime','algorave','tech','tags']
+
+def downloadFile(url: str, dir: str) -> str:
+    CHUNK_SIZE = 1024 * 10240 # 10 MB
+    temp_file = dir + os.path.basename(url)
+
+    session = requests.Session()
+
+    r = session.get(url, stream=True)
+    r.raise_for_status()
+
+    if r.ok:
+        print(f"downloading {url} to {temp_file}")
+        total_size_in_bytes= int(r.headers.get('content-length', 0))
+        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+
+        with open(temp_file, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                if chunk:
+                    progress_bar.update(len(chunk))
+                    f.write(chunk)
+                    f.flush()
+                    os.fsync(f.fileno())
+    else:  # HTTP status code 4XX/5XX
+        print(f"Download failed: status code {r.status_code}\n{r.text}")
+
+    return temp_file
+
+def cleanupFile(filename: str):
+    if os.path.isfile(filename):
+        os.remove(filename)
+        print(f"{filename} cleaned up")
+    else:    ## Show an error ##
+        print(f"Error: file not found: {filename}")
+
+def mergeFiles(files):
+    # this will simply merge the videos in the order the files are specified in the CSV
+    # more complex actions such as trimming individual videos or the resulting video will be added later if needed
+    # bitrate and codec details will be the same for all videos we are merging together, so we only look at the first video
+    file_arr = []
+    temp_base_dir = livecode_config[CONFIG_GLOBAL]['video_file_location']
+
+    # download all the files in the array
+    for file in files:
+        local_file = downloadFile(file, temp_base_dir)
+        file_arr.append(local_file)
+
+    video_file_no_ext = file_arr[0][:-4]
+    merged_video_file = video_file_no_ext + "-merged.flv"
+
+    print("merging videos in order")
+
+    audio_codec, video_codec, vid_br_str, aud_br_str = getVideoDetails(file_arr[0])
+
+    ##### Directly use FFMPEG to concat files due to some odd error with moviepy
+
+    with open('list.txt','w') as f:
+        for fp in file_arr:
+            f.write(f'file {fp}\n')
+
+    # run ffmpeg to concat videos 
+    command = "ffmpeg -f concat -safe 0 -i list.txt -c copy " + merged_video_file
+    subprocess.call(command, shell=True)
+
+    print(f"completed merging files.  new file at {merged_video_file}")
+
+    for file in file_arr:
+        cleanupFile(file)
+        print(f"cleaned up temp file: {file}")
+
+    return merged_video_file
+
+# parses a video file, outputs some details, returns info required to re-encode the final video
+def getVideoDetails(videoPath):
+    # use ffprobe to get the bitrate of the stream
+    # flv files don't seem to respond with a separate bitrate for the audio and video streams, so we just grab the overall bitrate
+    try:
+        probe = ffmpeg.probe(videoPath)
+    except ffmpeg.Error as e:
+        print(e.stderr, file=sys.stderr)
+        sys.exit(1)
+
+    # overall bitrate can be found in probe['format']['bit_rate']
+    # we also find the audio and video codecs used.  this is most likely going to be 'h264' and 'aac' for flv files, but we want to
+    # be sure
+
+    video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+
+    overall_bitrate = int(probe['format']['bit_rate'])
+    video_codec = video_stream['codec_name']
+    audio_codec = audio_stream['codec_name']
+    audio_bitrate = 0
+    video_bitrate = 0
+
+    # now do some minimal calculation to generate an audio and video bitrate to use when re-encoding the file after clipping
+    if overall_bitrate < 1000000:
+        audio_bitrate = 128000
+    else:
+        audio_bitrate = 256000
+
+    video_bitrate = overall_bitrate - audio_bitrate
+
+    # moviepy wants the bitrates as strings like '128k', etc... so now we convert the integer bitrates into that string
+    vid_br_str = str(video_bitrate)[:-3] + 'k'
+    aud_br_str = str(audio_bitrate)[:-3] + 'k'
+
+    print(f"things about the video: overall_bitrate: {overall_bitrate}, audio_bitrate: {audio_bitrate}, video_bitrate: {video_bitrate}, audio_codec: {audio_codec}, ")
+    print(f"video_codec: {video_codec}, vid_br_str: {vid_br_str}, aud_br_str: {aud_br_str}")
+
+    return audio_codec, video_codec, vid_br_str, aud_br_str
 
 INI_FILE_LOCATION = 'live-code-uploader.ini'
 CONFIG_GLOBAL = 'global.props'
@@ -65,9 +177,17 @@ results = stream_metadata['results']
 
 # get some global values
 templates = Templater(livecode_config[CONFIG_STREAM][VIDEO_TITLE_TEMPLATE_KEY], livecode_config[CONFIG_STREAM][VIDEO_DESCR_TEMPLATE_KEY])
-#youtube_upload = YouTubeUpload(livecode_config[CONFIG_YOUTUBE])
+youtube_upload = YouTubeUpload(livecode_config[CONFIG_YOUTUBE])
+
 #need to create the archiveorg module
 #archiveorg_upload = ArchiveOrgUpload(livecode_config[CONFIG_ARCHIVE_ORG])
+
+# for testing, short circuit processing so we are only testing upload for a couple of items
+processed_normal = 0
+processed_merge = 0
+
+processed_normal_limit = 0
+processed_merge_limit = 1
 
 for result in results:
     print (f"processing stream: {result['url']}, {result['publisher_name']}")
@@ -76,36 +196,90 @@ for result in results:
     if len(result_recs) > 0:
         print ("more than 0 recording files")
         if len(result_recs) > 1:
-            # if there's more than 1 video file for this performance then we need to merge them together
-            print ("greater than 1 recording files, passing for now")
-            pass
+            if processed_merge < processed_merge_limit:
+                # if there's more than 1 video file for this performance then we need to merge them together
+                
+                print ("greater than 1 recording files, merging")
+
+                merge_file = mergeFiles(result_recs)
+
+                result_data = {
+                    'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + result['publisher_name'].lower().replace(" ", "-"),
+                    'files' : merge_file,
+                    'artist_name' : result['publisher_name'],
+                    'user_desc' : result['description'],
+                    'location' : result['location'],
+                    'performance_date' : result['starts_at'][0:10],
+                    'performance_time' : result['starts_at'][11:16],
+                    'tags' : livecode_config[CONFIG_STREAM][DEFAULT_TAGS_KEY],
+                    'file_size' : os.path.getsize(merge_file)              
+                }
+
+                if (livecode_config[CONFIG_GLOBAL]['skipYoutube'] != 'True'):
+                    # invoke youtube upload
+                    video_id = youtube_upload.uploadFile(result_data, templates)
+                    if video_id is None:
+                        print("failed to upload file")
+                    else:
+                        print(f"added youtube video {video_id}")
+
+                else:
+                    print("skipping youtube upload")
+
+                # upload to archive.org
+                if (livecode_config[CONFIG_GLOBAL]['skipArchiveOrg'] != 'True'):
+                    # invoke archive.org upload
+                    archiveorg_upload.uploadFile(result_data)
+                else:
+                    print("skipping archive.org upload")
+
+                processed_merge += 1
+                cleanupFile(merge_file)
+            else:
+                print("at the process merge files limit, skipping")
+                pass
         else:
-            # grab data required and put into a dictionary with known keys
-            print ("exactly 1 recording file, archiving")
-            result_data = {
-                'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + result['publisher_name'].lower().replace(" ", "-"),
-                'files' : result['recordings'][0],
-                'artist_name' : result['publisher_name'],
-                'user_desc' : result['description'],
-                'location' : result['location'],
-                'performance_date' : result['starts_at'][0:10],
-                'performance_time' : result['starts_at'][11:16],
-                'tags' : livecode_config[CONFIG_STREAM][DEFAULT_TAGS_KEY]                
-            }
+            if processed_normal < processed_normal_limit:
+                # grab data required and put into a dictionary with known keys
+                print ("exactly 1 recording file, archiving")
 
-            if (livecode_config[CONFIG_GLOBAL]['skipYoutube'] != 'True'):
-                # invoke youtube upload
-                video_id = youtube_upload.uploadFile(result_data)
-                print (f"added youtube video {video_id}")
-            else:
-                print("skipping youtube upload")
+                local_file = downloadFile(result['recordings'][0], livecode_config[CONFIG_GLOBAL]['video_file_location'])
 
-            # upload to archive.org
-            if (livecode_config[CONFIG_GLOBAL]['skipArchiveOrg'] != 'True'):
-                # invoke archive.org upload
-                archiveorg_upload.uploadFile(result_data)
+                result_data = {
+                    'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + result['publisher_name'].lower().replace(" ", "-"),
+                    'files' : local_file,
+                    'artist_name' : result['publisher_name'],
+                    'user_desc' : result['description'],
+                    'location' : result['location'],
+                    'performance_date' : result['starts_at'][0:10],
+                    'performance_time' : result['starts_at'][11:16],
+                    'tags' : livecode_config[CONFIG_STREAM][DEFAULT_TAGS_KEY],
+                    'file_size' : os.path.getsize(local_file)              
+                }
+
+                if (livecode_config[CONFIG_GLOBAL]['skipYoutube'] != 'True'):
+                    # invoke youtube upload
+                    video_id = youtube_upload.uploadFile(result_data, templates)
+                    if video_id is None:
+                        print("failed to upload file")
+                    else:
+                        print(f"added youtube video {video_id}")
+
+                else:
+                    print("skipping youtube upload")
+
+                # upload to archive.org
+                if (livecode_config[CONFIG_GLOBAL]['skipArchiveOrg'] != 'True'):
+                    # invoke archive.org upload
+                    archiveorg_upload.uploadFile(result_data)
+                else:
+                    print("skipping archive.org upload")
+                
+                processed_normal += 1
+                cleanupFile(local_file)
             else:
-                print("skipping archive.org upload")     
+                print("at the process normal files limit, skipping")
+                pass
     else:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")
 
@@ -115,54 +289,14 @@ for result in results:
 
 
 # read config in csv
-def readCsv(configLoc):
-    csv_rows = []
-    with open(configLoc, mode='r') as csv_file:
-        csv_reader = csv.reader(csv_file)
-        csv_rows = []
-        for row in csv_reader:
-            csv_rows.append(row)
-    return csv_rows
-
-# parses a video file, outputs some details, returns info required to re-encode the final video
-def getVideoDetails(videoPath):
-    # use ffprobe to get the bitrate of the stream
-    # flv files don't seem to respond with a separate bitrate for the audio and video streams, so we just grab the overall bitrate
-    try:
-        probe = ffmpeg.probe(videoPath)
-    except ffmpeg.Error as e:
-        print(e.stderr, file=sys.stderr)
-        sys.exit(1)
-
-    # overall bitrate can be found in probe['format']['bit_rate']
-    # we also find the audio and video codecs used.  this is most likely going to be 'h264' and 'aac' for flv files, but we want to
-    # be sure
-
-    video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
-    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
-
-    overall_bitrate = int(probe['format']['bit_rate'])
-    video_codec = video_stream['codec_name']
-    audio_codec = audio_stream['codec_name']
-    audio_bitrate = 0
-    video_bitrate = 0
-
-    # now do some minimal calculation to generate an audio and video bitrate to use when re-encoding the file after clipping
-    if overall_bitrate < 1000000:
-        audio_bitrate = 128000
-    else:
-        audio_bitrate = 256000
-
-    video_bitrate = overall_bitrate - audio_bitrate
-
-    # moviepy wants the bitrates as strings like '128k', etc... so now we convert the integer bitrates into that string
-    vid_br_str = str(video_bitrate)[:-3] + 'k'
-    aud_br_str = str(audio_bitrate)[:-3] + 'k'
-
-    print(f"things about the video: overall_bitrate: {overall_bitrate}, audio_bitrate: {audio_bitrate}, video_bitrate: {video_bitrate}, audio_codec: {audio_codec}, ")
-    print(f"video_codec: {video_codec}, vid_br_str: {vid_br_str}, aud_br_str: {aud_br_str}")
-
-    return audio_codec, video_codec, vid_br_str, aud_br_str
+# def readCsv(configLoc):
+#     csv_rows = []
+#     with open(configLoc, mode='r') as csv_file:
+#         csv_reader = csv.reader(csv_file)
+#         csv_rows = []
+#         for row in csv_reader:
+#             csv_rows.append(row)
+#     return csv_rows
 
 # edit video if needed and return the path to the new file
 def editFile(editType, videoPath, times):
@@ -219,52 +353,52 @@ def editFile(editType, videoPath, times):
     else:
         pass
 
-def uploadToYoutube(youtube_config, file_path, row_data, templates):
-    YOUTUBE_API_SERVICE_NAME = "youtube"
-    YOUTUBE_API_VERSION = "v3"
-    MUSIC = 10
-    PRIVATE = "private"
-    LICENSE = "creativeCommon"
+# def uploadToYoutube(youtube_config, file_path, row_data, templates):
+#     YOUTUBE_API_SERVICE_NAME = "youtube"
+#     YOUTUBE_API_VERSION = "v3"
+#     MUSIC = 10
+#     PRIVATE = "private"
+#     LICENSE = "creativeCommon"
     
-    newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
-                                                    token_uri=youtube_config['token_uri'], 
-                                                    client_id=youtube_config['client_id'], 
-                                                    client_secret=youtube_config['client_secret'])
+#     newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
+#                                                     token_uri=youtube_config['token_uri'], 
+#                                                     client_id=youtube_config['client_id'], 
+#                                                     client_secret=youtube_config['client_secret'])
 
-    google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
+#     google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
 
-    desc = templateReplaceDesc(templates, row_data)
-    desc = desc.replace(" -- ", chr(13) + chr(10) + chr(13) + chr(10))
+#     desc = templateReplaceDesc(templates, row_data)
+#     desc = desc.replace(" -- ", chr(13) + chr(10) + chr(13) + chr(10))
 
-    body=dict(
-        snippet=dict(
-            title=templateReplaceTitle(templates, row_data),
-            description=desc,
-            tags=row_data['tags'].split(","),
-            categoryId=MUSIC
-        ),
-        status=dict(
-            privacyStatus=PRIVATE,
-            licence=LICENSE
-        ),
-        recordingDetails=dict(
-            recordingDate=row_data['performance_date']
-        )
-    )
+#     body=dict(
+#         snippet=dict(
+#             title=templateReplaceTitle(templates, row_data),
+#             description=desc,
+#             tags=row_data['tags'].split(","),
+#             categoryId=MUSIC
+#         ),
+#         status=dict(
+#             privacyStatus=PRIVATE,
+#             licence=LICENSE
+#         ),
+#         recordingDetails=dict(
+#             recordingDate=row_data['performance_date']
+#         )
+#     )
 
-    # Call the API's videos.insert method to create and upload the video.
-    insert_request = google_service.videos().insert(
-        part=",".join(body.keys()),
-        body=body,
-        media_body=MediaFileUpload(file_path)
-    )
+#     # Call the API's videos.insert method to create and upload the video.
+#     insert_request = google_service.videos().insert(
+#         part=",".join(body.keys()),
+#         body=body,
+#         media_body=MediaFileUpload(file_path)
+#     )
 
-    print(f"uploading: {file_path}")
+#     print(f"uploading: {file_path}")
 
-    response = insert_request.execute()
+#     response = insert_request.execute()
 
-    print(response)
-    return response['id']
+#     print(response)
+#     return response['id']
 
 def uploadToArchiveOrg(archive_org_config, file_path, row_data, templates, archivePrefix):
     MEDIA_TYPE = "movies"
@@ -292,74 +426,75 @@ def uploadToArchiveOrg(archive_org_config, file_path, row_data, templates, archi
         print(f'An error occurred: {e}')
         pass
 
-def createYoutubePlaylist(youtube_config, playlist_title, playlist_description):
-    YOUTUBE_API_SERVICE_NAME = "youtube"
-    YOUTUBE_API_VERSION = "v3"
+# def createYoutubePlaylist(youtube_config, playlist_title, playlist_description):
+#     YOUTUBE_API_SERVICE_NAME = "youtube"
+#     YOUTUBE_API_VERSION = "v3"
     
-    newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
-                                                    token_uri=youtube_config['token_uri'], 
-                                                    client_id=youtube_config['client_id'], 
-                                                    client_secret=youtube_config['client_secret'])
+#     newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
+#                                                     token_uri=youtube_config['token_uri'], 
+#                                                     client_id=youtube_config['client_id'], 
+#                                                     client_secret=youtube_config['client_secret'])
 
-    google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
+#     google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
 
-    desc = playlist_description.replace(" -- ", chr(13) + chr(10) + chr(13) + chr(10))
+#     desc = playlist_description.replace(" -- ", chr(13) + chr(10) + chr(13) + chr(10))
 
-    body=dict(
-        snippet=dict(
-            title=playlist_title,
-            description=desc
-        ),
-        status=dict(
-            privacyStatus="private"
-        )
-    )
+#     body=dict(
+#         snippet=dict(
+#             title=playlist_title,
+#             description=desc
+#         ),
+#         status=dict(
+#             privacyStatus="private"
+#         )
+#     )
 
-    # Call the API's videos.insert method to create and upload the video.
-    insert_request = google_service.playlists().insert(
-        part=",".join(body.keys()),
-        body=body
-    )
+#     # Call the API's videos.insert method to create and upload the video.
+#     insert_request = google_service.playlists().insert(
+#         part=",".join(body.keys()),
+#         body=body
+#     )
 
-    print(f"inserting playlist")
+#     print(f"inserting playlist")
 
-    response = insert_request.execute()
+#     response = insert_request.execute()
 
-    print(response)
-    return response['id']
+#     print(response)
+#     return response['id']
 
-def addToPlaylist(youtube_config, playlist_id, video_id):
-    YOUTUBE_API_SERVICE_NAME = "youtube"
-    YOUTUBE_API_VERSION = "v3"
+# def addToPlaylist(youtube_config, playlist_id, video_id):
+#     YOUTUBE_API_SERVICE_NAME = "youtube"
+#     YOUTUBE_API_VERSION = "v3"
     
-    newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
-                                                    token_uri=youtube_config['token_uri'], 
-                                                    client_id=youtube_config['client_id'], 
-                                                    client_secret=youtube_config['client_secret'])
+#     newCreds = Credentials('', refresh_token=youtube_config['refresh_token'], 
+#                                                     token_uri=youtube_config['token_uri'], 
+#                                                     client_id=youtube_config['client_id'], 
+#                                                     client_secret=youtube_config['client_secret'])
 
-    google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
+#     google_service = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=newCreds)
 
-    body=dict(
-        snippet=dict(
-            playlist_id=playlist_id,
-            resource_id=dict (
-                kind="youtube#video",
-                videoId=video_id
-            )
-        )
-    )
+#     body=dict(
+#         snippet=dict(
+#             playlist_id=playlist_id,
+#             resource_id=dict (
+#                 kind="youtube#video",
+#                 videoId=video_id
+#             )
+#         )
+#     )
 
-    # Call the API's videos.insert method to create and upload the video.
-    insert_request = google_service.playlistItems().insert(
-        part=",".join(body.keys()),
-        body=body
-    )
+#     # Call the API's videos.insert method to create and upload the video.
+#     insert_request = google_service.playlistItems().insert(
+#         part=",".join(body.keys()),
+#         body=body
+#     )
 
-    print(f"inserting video: {video_id} into playlist: {playlist_id}")
+#     print(f"inserting video: {video_id} into playlist: {playlist_id}")
 
-    response = insert_request.execute()
+#     response = insert_request.execute()
 
-    print(response)
+#     print(response)
+
 
 # youtube_config, archive_org_config, global_config = readProps()
 
