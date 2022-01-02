@@ -2,6 +2,6 @@ pytest
 internetarchive
 google-api-python-client
 google-auth-oauthlib
-moviepy
 ffmpeg-python
 tqdm
+unidecode
