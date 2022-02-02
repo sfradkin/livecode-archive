@@ -8,6 +8,9 @@ from tqdm import tqdm
 
 import http.client
 import httplib2
+import random
+import time
+import logging
 
 class YouTubeUpload:
 
@@ -65,9 +68,11 @@ class YouTubeUpload:
                     
                     if 'id' in response:
                         print(f"Video id {response['id']} was successfully uploaded.")
+                        logging.info(f"Video id {response['id']} was successfully uploaded.")
                         return response
                     else:
                         print(f"The upload failed with an unexpected response: {response}")
+                        logging.info(f"The upload failed with an unexpected response: {response}")
                 else:
                     cur_chunk = status.resumable_progress - prev_bytes
                     progress_bar.update(cur_chunk)
@@ -78,7 +83,9 @@ class YouTubeUpload:
                     error = 'A retriable HTTP error %d occurred:\n%s' % (e.resp.status,
                                                                         e.content)
                 else:
-                    pass
+                    print(f'error uploading, code: {e.resp.status}, text: {e.content}')
+                    logging.debug(f'error uploading, code: {e.resp.status}, text: {e.content}')
+                    break
 
             except self.RETRIABLE_EXCEPTIONS as e:
                 error = 'A retriable error occurred: %s' % e
@@ -88,7 +95,7 @@ class YouTubeUpload:
                 retry += 1
                 if retry > self.MAX_RETRIES:
                     print('No longer attempting to retry.')
-                    pass
+                    break
 
                 max_sleep = 2 ** retry
                 sleep_seconds = random.random() * max_sleep
@@ -123,11 +130,14 @@ class YouTubeUpload:
         )
 
         print(f"uploading: {row_data['files']}")
+        logging.info(f"uploading: {row_data['files']}")
 
         response = self.resumable_upload(insert_request, row_data['file_size'])
         if response is not None:
             print(response)
+            logging.info(response)
             return response['id']
         else:
             print("failed to upload file")
+            logging.info("failed to upload file")
             return None

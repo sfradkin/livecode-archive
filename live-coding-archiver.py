@@ -1,6 +1,9 @@
 import ffmpeg # pip install ffmpeg-python
 import sys
 import subprocess
+import re
+import string
+import logging
 
 from utils.configreader import ConfigReader
 from utils.jsonloader import JsonLoader
@@ -144,6 +147,8 @@ VIDEO_DESCR_TEMPLATE_KEY = 'video_description_template'
 ARCHIVE_ID_PREFIX_KEY = 'archive_id_prefix'
 DEFAULT_TAGS_KEY = 'default_tags'
 
+logging.basicConfig(filename='archiver.log', encoding='utf-8', level=logging.DEBUG)
+
 livecode_config = ConfigReader.getConfig(INI_FILE_LOCATION)
 
 headers = {'accept': 'application/json', 'Authorization': 'Api-Key ' + livecode_config[CONFIG_GLOBAL]['muxy_auth_token']}
@@ -151,7 +156,9 @@ muxy_url = 'https://muxy.tidalcycles.org/streams/?event__id=' + livecode_config[
 
 print("retrieving livestream event metadata")
 
-stream_metadata = JsonLoader.loadJsonMetadataFromUrl(muxy_url, headers)
+stream_metadata = JsonLoader.loadJsonMetadata(livecode_config[CONFIG_GLOBAL]['file_or_url'], livecode_config[CONFIG_GLOBAL]['metadata_file'], muxy_url, headers)
+
+#stream_metadata = JsonLoader.loadJsonMetadataFromUrl(muxy_url, headers)
 
 number_of_slots = stream_metadata['count']
 print (f"number of slots in livestream: {number_of_slots}")
@@ -166,11 +173,13 @@ archiveorg_upload = ArchiveOrgUpload()
 processed_normal = 0
 processed_merge = 0
 
-processed_normal_limit = 0
-processed_merge_limit = 2
+processed_normal_limit = 200
+processed_merge_limit = 200
 
 for result in results:
     print (f"processing stream: {result['url']}, {result['publisher_name']}")
+    logging.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    logging.info(f"processing stream: {result['url']}, {result['publisher_name']}")
     # check to see if this performance has videos
     result_recs = result['recordings']
     if len(result_recs) > 0:
@@ -184,6 +193,8 @@ for result in results:
                 merge_file = mergeFiles(result_recs)
 
                 publisher_name = result['publisher_name'].lower().replace(" ", "-")
+                punct_chars = re.escape(string.punctuation)
+                publisher_name = re.sub(r'[' + punct_chars + ']', '-', publisher_name)
                 publisher_name = unidecode(publisher_name)
 
                 result_data = {
@@ -203,8 +214,10 @@ for result in results:
                     video_id = youtube_upload.uploadFile(result_data, templates)
                     if video_id is None:
                         print("failed to upload file")
+                        logging.info("failed to upload file")
                     else:
                         print(f"added youtube video {video_id}")
+                        logging.info(f"added youtube video {video_id}")
 
                 else:
                     print("skipping youtube upload")
@@ -213,6 +226,8 @@ for result in results:
                 if (livecode_config[CONFIG_GLOBAL]['skipArchiveOrg'] != 'True'):
                     # invoke archive.org upload
                     archiveorg_upload.uploadFile(result_data, templates)
+                    print("completed archive.org upload")
+                    logging.info("completed archive.org upload")
                 else:
                     print("skipping archive.org upload")
 
@@ -229,6 +244,8 @@ for result in results:
                 local_file = downloadFile(result['recordings'][0], livecode_config[CONFIG_GLOBAL]['video_file_location'])
 
                 publisher_name = result['publisher_name'].lower().replace(" ", "-")
+                punct_chars = re.escape(string.punctuation)
+                publisher_name = re.sub(r'[' + punct_chars + ']', '-', publisher_name)
                 publisher_name = unidecode(publisher_name)
 
                 result_data = {
@@ -248,8 +265,10 @@ for result in results:
                     video_id = youtube_upload.uploadFile(result_data, templates)
                     if video_id is None:
                         print("failed to upload file")
+                        logging.info("failed to upload file")
                     else:
                         print(f"added youtube video {video_id}")
+                        logging.info(f"added youtube video {video_id}")
 
                 else:
                     print("skipping youtube upload")
@@ -258,6 +277,8 @@ for result in results:
                 if (livecode_config[CONFIG_GLOBAL]['skipArchiveOrg'] != 'True'):
                     # invoke archive.org upload
                     archiveorg_upload.uploadFile(result_data, templates)
+                    print("completed archive.org upload")
+                    logging.info("completed archive.org upload")
                 else:
                     print("skipping archive.org upload")
                 
@@ -268,3 +289,5 @@ for result in results:
                 pass
     else:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")
+
+    logging.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")

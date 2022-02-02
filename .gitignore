@@ -10,3 +10,5 @@ test.json
 *-output.json
 __pycache__
 *-auth.*
+temp*.json
+*.log

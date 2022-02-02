@@ -2,6 +2,8 @@ from internetarchive import upload # internetarchive
 
 from utils.templater import Templater
 
+import logging
+
 class ArchiveOrgUpload:
 
     MEDIA_TYPE = "movies"
@@ -28,9 +30,12 @@ class ArchiveOrgUpload:
                             licenseurl=self.LICENSE_URL, subject=row_data['tags'].split(","), title=templates.getTitle(row_data))
 
             print(f"uploading file to archive.org: {row_data['files']}")
+            logging.info(f"uploading file to archive.org: {row_data['files']}")
 
             results = upload(file_id, files=[row_data['files']], metadata=meta_data, verbose=True)
             print(f"completed uploading file: {row_data['files']}, url: {results[0].url}")
+            logging.info(f"completed uploading file: {row_data['files']}, url: {results[0].url}")
         except Exception as e:
             print(f'An error occurred: {e}')
+            logging.debug(f'An error occurred: {e}')
             pass
