@@ -197,11 +197,13 @@ for result in results:
                 publisher_name = re.sub(r'[' + punct_chars + ']', '-', publisher_name)
                 publisher_name = unidecode(publisher_name)
 
+                description = result['description'].replace("<", "&lt;")
+
                 result_data = {
                     'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
                     'files' : merge_file,
                     'artist_name' : result['publisher_name'],
-                    'user_desc' : result['description'],
+                    'user_desc' : description,
                     'location' : result['location'],
                     'performance_date' : result['starts_at'][0:10],
                     'performance_time' : result['starts_at'][11:16],
@@ -248,11 +250,13 @@ for result in results:
                 publisher_name = re.sub(r'[' + punct_chars + ']', '-', publisher_name)
                 publisher_name = unidecode(publisher_name)
 
+                description = result['description'].replace("<", "&lt;")
+
                 result_data = {
                     'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
                     'files' : local_file,
                     'artist_name' : result['publisher_name'],
-                    'user_desc' : result['description'],
+                    'user_desc' : description,
                     'location' : result['location'],
                     'performance_date' : result['starts_at'][0:10],
                     'performance_time' : result['starts_at'][11:16],
