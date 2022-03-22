@@ -10,3 +10,7 @@ are there more things we can drive with muxy metadata rather than put in the ini
 do a better job with unit testing
 github actions to tie linting/testing/etc together when pushing commits and doing PRs
 figure out how to make playlists work with the API as this wasn't working in the past
+log useful things
+retries - can we just re-run the full archiving and the script figures out if we've already archived a video?
+compare downloaded video size with what was actually downloaded to detect if a download ended prematurely
+better logging of issues with files not fully downloading/uploading or verification that archving worked correctly

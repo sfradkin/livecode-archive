@@ -202,7 +202,7 @@ for result in results:
                 result_data = {
                     'archive_id' : livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
                     'files' : merge_file,
-                    'artist_name' : result['publisher_name'],
+                    'artist_name' : result['publisher_name'][0:40], # limit the publisher_name to 40 chars to avoid length issues with youtube
                     'user_desc' : description,
                     'location' : result['location'],
                     'performance_date' : result['starts_at'][0:10],
