@@ -1,26 +1,56 @@
-# This README requires significant updates, disregard the rest for now
+# Live Coding Archiver
 
-bulk upload of files to the internet archive
+This is a Python script that manages the archiving of live streams managed by muxy to archive.org
+and the Eulerroom channel on YouTube.
 
-This is a script that used to automate multiple uploads to the Internet Archive.  It will apply some defaults that have been used across
-previous uploads to the TOPLAP collection at archive.org.
+This script reads the metadata from muxy, downloads video files for each performer, concatenates
+videos together if needed, then re-uploads to both archive.org and YouTube with tags.
 
-pre-requisites
+## Pre-Requisites
 
-python 3.X
-`pip install internetarchive`
-After installing the `internetarchive` python module, setup is required.  Run `ia configure` to configure the authentication details for the module.  You will be asked to login to archive.org and it will write a `~/.ia` file with the s3 keys and archive.org cookie information required to authenticate with archive.org through the API.
+Please contact the maintainer for information on setting up authentication correctly.
 
+Python 3.X is required.
 
-copy live-code-uploader-template.ini to live-code-uploader.ini and fill out the required values
---> in the archive.org.uploader section
------> csv.location - location of the CSV file that will be used by the archive.org uploader
+`pip install -r requirements.txt`
 
-internet archive bulk upload csv file format
+Copy the `live-code-uploader-template.ini` file to `live-code-uploader.ini` and fill out the required values.
 
-file id, file location, title, description, creator, date recorded, the rest of the columns are subject tags
+## Usage
 
-Usage
+`python ./live-coding-archiver.py`
 
-Fill out the details in the CSV file, one row for each file to be uploaded.
-From a terminal run `python bulk-upload-archiveorg.py`.  The Python script will iterate through the CSV file and upload each file to the TOPLAP collection with the appropriate metadata.  Each file uploaded can be found at https://www.archive.org/details/<prefix>-<file id>.  It can take up to 24 hours for the newly uploaded files to be indexed so that they can be found in the TOPLAP collection, but they can generally be found immediately at their detail link.
+Some messages will output to the console, other debug information will output to the `archiver.log` file.
+
+### Properties explanation
+
+There are a number of properties to fill out in the `live-code-uploader.ini` file.
+
+    [global.props]
+    skipYoutube= This can be `True` to skip archiving to YouTube or `False` to archive
+    skipArchiveOrg= This can be `True` to skip archiving to archive.org or `False` to archive
+    skipPlaylist= Always `True` for now
+    video_file_location= Set to an absolute location on your local disk to use as a prefix for where to store downloaded video files temporarily
+    muxy_auth_token= Authentication token for accessing muxy
+    muxy_event= The event number for the stream to be archived
+    file_or_url= If set to `file` will look for a local metadata file, if set to `url` will access the muxy server url
+    metadata_file= Location of a local metatdata file
+    video_file_or_url= If `file` will look for all video files on local disk based on location listed in metadata, if `url` will download video files from url listed in metadata
+
+    [archive.org.upload]
+    none= Leave blank, unused
+
+    [youtube.upload]
+    refresh_token= Contact maintainer for information
+    token_uri= Contact maintainer for information
+    client_id= Contact maintainer for information
+    client_secret= Contact maintainer for information
+
+    [stream.props]
+    default_tags= The default tags to tag videos with
+    video_title_template= This is a template that gets filled in and used as the title for videos
+    video_description_template= This is a template that gets filled in and used as the description for videos
+    archive_id_prefix= A unique string that is pre-pended to the archive.org video identifier
+    playlist_title_template= Not currently used
+    playlist_description_template= Not currently used
+

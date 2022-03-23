@@ -4,6 +4,7 @@ import subprocess
 import re
 import string
 import logging
+import shutil
 
 from utils.configreader import ConfigReader
 from utils.jsonloader import JsonLoader
@@ -16,29 +17,34 @@ import os
 from tqdm import tqdm
 from unidecode import unidecode
 
-def downloadFile(url: str, dir: str) -> str:
+def downloadFile(file_or_url: str, url: str, dir: str) -> str:
     CHUNK_SIZE = 1024 * 10240 # 10 MB
     temp_file = dir + (os.path.basename(url)).replace(":", "-")
 
-    session = requests.Session()
+    if file_or_url == 'file':
+        logging.debug(f"local file mode: copying {url} to {temp_file}")
+        shutil.copy2(url, temp_file)
+    else:
+        logging.debug("url mode")
+        session = requests.Session()
 
-    r = session.get(url, stream=True)
-    r.raise_for_status()
+        r = session.get(url, stream=True)
+        r.raise_for_status()
 
-    if r.ok:
-        print(f"downloading {url} to {temp_file}")
-        total_size_in_bytes= int(r.headers.get('content-length', 0))
-        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+        if r.ok:
+            print(f"downloading {url} to {temp_file}")
+            total_size_in_bytes= int(r.headers.get('content-length', 0))
+            progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
 
-        with open(temp_file, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
-                if chunk:
-                    progress_bar.update(len(chunk))
-                    f.write(chunk)
-                    f.flush()
-                    os.fsync(f.fileno())
-    else:  # HTTP status code 4XX/5XX
-        print(f"Download failed: status code {r.status_code}\n{r.text}")
+            with open(temp_file, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                    if chunk:
+                        progress_bar.update(len(chunk))
+                        f.write(chunk)
+                        f.flush()
+                        os.fsync(f.fileno())
+        else:  # HTTP status code 4XX/5XX
+            print(f"Download failed: status code {r.status_code}\n{r.text}")
 
     return temp_file
 
@@ -58,7 +64,7 @@ def mergeFiles(files):
 
     # download all the files in the array
     for file in files:
-        local_file = downloadFile(file, temp_base_dir)
+        local_file = downloadFile(livecode_config[CONFIG_GLOBAL]['video_file_or_url'], file, temp_base_dir)
 
         if 0 == os.path.getsize(local_file):
             cleanupFile(local_file)
@@ -243,7 +249,7 @@ for result in results:
                 # grab data required and put into a dictionary with known keys
                 print ("exactly 1 recording file, archiving")
 
-                local_file = downloadFile(result['recordings'][0], livecode_config[CONFIG_GLOBAL]['video_file_location'])
+                local_file = downloadFile(livecode_config[CONFIG_GLOBAL]['video_file_or_url'], result['recordings'][0], livecode_config[CONFIG_GLOBAL]['video_file_location'])
 
                 publisher_name = result['publisher_name'].lower().replace(" ", "-")
                 punct_chars = re.escape(string.punctuation)
