@@ -8,3 +8,7 @@ list.txt
 test.json
 .stuff
 *-output.json
+__pycache__
+*-auth.*
+temp*.json
+*.log
