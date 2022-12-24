@@ -56,7 +56,7 @@ packaging==22.0
     # via pytest
 pluggy==1.0.0
     # via pytest
-protobuf==3.20.3
+protobuf==4.21.12
     # via
     #   google-api-core
     #   googleapis-common-protos
