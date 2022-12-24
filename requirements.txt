@@ -72,7 +72,7 @@ pyparsing==3.0.6
     # via
     #   httplib2
     #   packaging
-pytest==6.2.5
+pytest==7.2.0
     # via -r requirements.in
 requests==2.26.0
     # via
