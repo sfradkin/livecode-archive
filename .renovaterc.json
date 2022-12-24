@@ -1,0 +1,35 @@
+{
+    "extends": ["config:base"],
+    "pre-commit": {
+      "enabled": false
+    },
+    "assigneesFromCodeOwners": true,
+    "automergeType": "pr",
+    "automergeStrategy": "squash",
+    "dependencyDashboard": true,
+    "dependencyDashboardAutoclose": true,
+    "transitiveRemediation": true,
+    "schedule": [
+      "after 8pm every weekday",
+      "before 8am every weekday",
+      "every weekend"
+    ],
+    "timezone": "America/Chicago",
+    "major": {
+      "automerge": false
+    },
+    "minor": {
+      "automerge": true,
+      "groupName": "minor dependencies",
+      "groupSlug": "all-minor",
+      "stabilityDays": 3
+    },
+    "patch": {
+      "automerge": true,
+      "groupName": "patch dependencies",
+      "groupSlug": "all-patch",
+      "stabilityDays": 0
+    },
+    "ignoreDeps": [".pytest_cache"],
+    "labels": ["renovate"]
+  }
