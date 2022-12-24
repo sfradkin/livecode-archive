@@ -12,3 +12,4 @@ __pycache__
 *-auth.*
 temp*.json
 *.log
+*.egg-info

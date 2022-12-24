@@ -16,6 +16,25 @@ Python 3.X is required.
 
 Copy the `live-code-uploader-template.ini` file to `live-code-uploader.ini` and fill out the required values.
 
+Install the `pre-commit` tool:
+
+`pip install pre-commit`
+
+Verify with:
+
+`pre-commit --version`
+
+Now install locally:
+
+`pre-commit install`
+
+You can now test it by running:
+
+`pre-commit run --all-files`
+
+It will run prior to any commit now.
+
+
 ## Usage
 
 `python ./live-coding-archiver.py`
@@ -54,3 +73,10 @@ There are a number of properties to fill out in the `live-code-uploader.ini` fil
     playlist_title_template= Not currently used
     playlist_description_template= Not currently used
 
+## Other
+
+If you need to regenerate the `requirements.txt` or `requirements-dev.txt` files for any reason use `pip-tools`.
+
+`pip-compile --upgrade -o requirements.txt pyproject.toml`
+
+`pip-compile --upgrade --extra dev -o requirements-dev.txt pyproject.toml`

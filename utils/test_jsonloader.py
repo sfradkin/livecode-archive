@@ -1,13 +1,16 @@
+import json
+
 import pytest
 import requests
-import json
+
 from utils.jsonloader import JsonLoader
 
+
 class MockJsonResponse:
-    
     @staticmethod
     def json():
-        return json.loads('{\
+        return json.loads(
+            '{\
             "count": 113,\
             "next": null,\
             "previous": null,\
@@ -29,7 +32,9 @@ class MockJsonResponse:
                 "event": "https://muxy.tidalcycles.org/events/8/"\
                 }\
             ]\
-        }')
+        }'
+        )
+
 
 # monkeypatched requests.get moved to a fixture
 @pytest.fixture
@@ -41,13 +46,14 @@ def mock_response(monkeypatch):
 
     monkeypatch.setattr(requests, "get", mock_get)
 
+
 def test_loadJsonMetadataFromUrl(mock_response):
 
-    headers = {'accept': 'application/json', 'Authorization': 'Api-Key aaaaaaa'}
-    url = 'https://muxy.tidalcycles.org/streams/?event__id=8'
+    headers = {"accept": "application/json", "Authorization": "Api-Key aaaaaaa"}
+    url = "https://muxy.tidalcycles.org/streams/?event__id=8"
 
     result = JsonLoader.loadJsonMetadataFromUrl(url, headers)
 
-    print (f"this should be the mock result: {result}")
+    print(f"this should be the mock result: {result}")
 
-    assert result['count'] == 113
+    assert result["count"] == 113
