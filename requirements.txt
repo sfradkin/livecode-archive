@@ -50,7 +50,7 @@ jsonpatch==1.32
     # via internetarchive
 jsonpointer==2.2
     # via jsonpatch
-oauthlib==3.1.1
+oauthlib==3.2.1
     # via requests-oauthlib
 packaging==21.3
     # via pytest
