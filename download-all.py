@@ -1,29 +1,21 @@
-import ffmpeg # pip install ffmpeg-python
-import sys
-import subprocess
-import re
-import string
 import logging
+import os
 import shutil
+
+import requests
+from tqdm import tqdm
 
 from utils.configreader import ConfigReader
 from utils.jsonloader import JsonLoader
-from utils.templater import Templater
-from utils.youtubeupload import YouTubeUpload
-from utils.archiveorgupload import ArchiveOrgUpload
-
-import requests
-import os
-from tqdm import tqdm
-from unidecode import unidecode
 
 # to download all the files, be sure to set the 'video_file_location' property
 
+
 def downloadFile(file_or_url: str, url: str, dir: str) -> str:
-    CHUNK_SIZE = 1024 * 10240 # 10 MB
+    CHUNK_SIZE = 1024 * 10240  # 10 MB
     temp_file = dir + (os.path.basename(url)).replace(":", "-")
 
-    if file_or_url == 'file':
+    if file_or_url == "file":
         logging.debug(f"local file mode: copying {url} to {temp_file}")
         shutil.copy2(url, temp_file)
     else:
@@ -35,10 +27,10 @@ def downloadFile(file_or_url: str, url: str, dir: str) -> str:
 
         if r.ok:
             print(f"downloading {url} to {temp_file}")
-            total_size_in_bytes= int(r.headers.get('content-length', 0))
-            progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+            total_size_in_bytes = int(r.headers.get("content-length", 0))
+            progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
 
-            with open(temp_file, 'wb') as f:
+            with open(temp_file, "wb") as f:
                 for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
                     if chunk:
                         progress_bar.update(len(chunk))
@@ -50,50 +42,60 @@ def downloadFile(file_or_url: str, url: str, dir: str) -> str:
 
     return temp_file
 
-INI_FILE_LOCATION = 'live-code-uploader.ini'
-CONFIG_GLOBAL = 'global.props'
-CONFIG_YOUTUBE = 'youtube.upload'
-CONFIG_ARCHIVE_ORG = 'archive.org.upload'
-CONFIG_STREAM = 'stream.props'
-STREAM_PROPS_JSON_LOC = 'json_location'
-VIDEO_TITLE_TEMPLATE_KEY = 'video_title_template'
-VIDEO_DESCR_TEMPLATE_KEY = 'video_description_template'
-ARCHIVE_ID_PREFIX_KEY = 'archive_id_prefix'
-DEFAULT_TAGS_KEY = 'default_tags'
 
-logging.basicConfig(filename='download-all.log', encoding='utf-8', level=logging.DEBUG)
+INI_FILE_LOCATION = "live-code-uploader.ini"
+CONFIG_GLOBAL = "global.props"
+CONFIG_YOUTUBE = "youtube.upload"
+CONFIG_ARCHIVE_ORG = "archive.org.upload"
+CONFIG_STREAM = "stream.props"
+STREAM_PROPS_JSON_LOC = "json_location"
+VIDEO_TITLE_TEMPLATE_KEY = "video_title_template"
+VIDEO_DESCR_TEMPLATE_KEY = "video_description_template"
+ARCHIVE_ID_PREFIX_KEY = "archive_id_prefix"
+DEFAULT_TAGS_KEY = "default_tags"
+
+logging.basicConfig(filename="download-all.log", encoding="utf-8", level=logging.DEBUG)
 
 livecode_config = ConfigReader.getConfig(INI_FILE_LOCATION)
 
-headers = {'accept': 'application/json', 'Authorization': 'Api-Key ' + livecode_config[CONFIG_GLOBAL]['muxy_auth_token']}
-muxy_url = 'https://muxy.tidalcycles.org/streams/?event__id=' + livecode_config[CONFIG_GLOBAL]['muxy_event']
+headers = {
+    "accept": "application/json",
+    "Authorization": "Api-Key " + livecode_config[CONFIG_GLOBAL]["muxy_auth_token"],
+}
+muxy_url = "https://muxy.tidalcycles.org/streams/?event__id=" + livecode_config[CONFIG_GLOBAL]["muxy_event"]
 
 print("retrieving livestream event metadata")
 
-stream_metadata = JsonLoader.loadJsonMetadata(livecode_config[CONFIG_GLOBAL]['file_or_url'], livecode_config[CONFIG_GLOBAL]['metadata_file'], muxy_url, headers)
+stream_metadata = JsonLoader.loadJsonMetadata(
+    livecode_config[CONFIG_GLOBAL]["file_or_url"], livecode_config[CONFIG_GLOBAL]["metadata_file"], muxy_url, headers
+)
 
-number_of_slots = stream_metadata['count']
-print (f"number of slots in livestream: {number_of_slots}")
-results = stream_metadata['results']
+number_of_slots = stream_metadata["count"]
+print(f"number of slots in livestream: {number_of_slots}")
+results = stream_metadata["results"]
 
 for result in results:
-    print (f"processing stream: {result['url']}, {result['publisher_name']}")
+    print(f"processing stream: {result['url']}, {result['publisher_name']}")
     logging.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     logging.info(f"processing stream: {result['url']}, {result['publisher_name']}")
     # check to see if this performance has videos
-    result_recs = result['recordings']
+    result_recs = result["recordings"]
     if len(result_recs) > 0:
-        print ("more than 0 recording files")
+        print("more than 0 recording files")
         if len(result_recs) > 1:
             file_arr = []
-            temp_base_dir = livecode_config[CONFIG_GLOBAL]['video_file_location']
+            temp_base_dir = livecode_config[CONFIG_GLOBAL]["video_file_location"]
 
             # download all the files in the array
             for file in result_recs:
-                local_file = downloadFile(livecode_config[CONFIG_GLOBAL]['video_file_or_url'], file, temp_base_dir)
+                local_file = downloadFile(livecode_config[CONFIG_GLOBAL]["video_file_or_url"], file, temp_base_dir)
         else:
-            print ("exactly 1 recording file, archiving")
+            print("exactly 1 recording file, archiving")
 
-            local_file = downloadFile(livecode_config[CONFIG_GLOBAL]['video_file_or_url'], result['recordings'][0], livecode_config[CONFIG_GLOBAL]['video_file_location'])
+            local_file = downloadFile(
+                livecode_config[CONFIG_GLOBAL]["video_file_or_url"],
+                result["recordings"][0],
+                livecode_config[CONFIG_GLOBAL]["video_file_location"],
+            )
 
-print ("completed downloading all files")
+print("completed downloading all files")
