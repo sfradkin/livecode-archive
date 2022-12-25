@@ -10,7 +10,7 @@ cachetools==5.2.0
     # via google-auth
 certifi==2022.12.7
     # via requests
-charset-normalizer==2.1.1
+charset-normalizer==3.0.1
     # via requests
 contextlib2==21.6.0
     # via schema
@@ -72,6 +72,7 @@ pyparsing==3.0.9
     # via httplib2
 pytest==7.2.0
     # via livecode-archive (pyproject.toml)
+pytest==7.2.0
 requests==2.28.1
     # via
     #   google-api-core
