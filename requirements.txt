@@ -44,7 +44,7 @@ httplib2==0.21.0
     #   google-auth-httplib2
 idna==3.4
     # via requests
-iniconfig==1.1.1
+iniconfig==2.0.0
     # via pytest
 internetarchive==3.0.2
     # via livecode-archive (pyproject.toml)
