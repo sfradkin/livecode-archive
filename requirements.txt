@@ -20,7 +20,7 @@ exceptiongroup==1.1.0
     # via pytest
 ffmpeg-python==0.2.0
     # via livecode-archive (pyproject.toml)
-future==0.18.2
+future==0.18.3
     # via ffmpeg-python
 google-api-core==2.11.0
     # via google-api-python-client
