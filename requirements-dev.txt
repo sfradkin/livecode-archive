@@ -34,7 +34,7 @@ ffmpeg-python==0.2.0
     # via livecode-archive (pyproject.toml)
 filelock==3.8.2
     # via virtualenv
-future==0.18.2
+future==0.18.3
     # via ffmpeg-python
 google-api-core==2.11.0
     # via google-api-python-client
