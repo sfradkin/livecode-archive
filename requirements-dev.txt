@@ -10,7 +10,7 @@ black==22.12.0
     # via livecode-archive (pyproject.toml)
 cachetools==5.2.0
     # via google-auth
-certifi==2022.12.7
+certifi==2023.7.22
     # via requests
 cfgv==3.3.1
     # via pre-commit
