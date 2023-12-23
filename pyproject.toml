@@ -1,6 +1,14 @@
 [project]
 name = "livecode-archive"
-version = "1.0"
+version = "1.01"
+description = "A tool used to archive all of the videos from a livecode stream using muxy"
+license = "CC0-1.0"
+authors = [
+       "Scott Fradkin <scott@fradkin.com>"
+]
+maintainers = [
+       "Scott Fradkin <scott@fradkin.com>"
+]
 dependencies = ["pytest",
                 "internetarchive",
                 "google-api-python-client",
