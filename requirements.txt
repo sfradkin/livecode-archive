@@ -66,7 +66,7 @@ pyasn1-modules==0.3.0
     # via google-auth
 pyparsing==3.1.1
     # via httplib2
-pytest==7.4.4
+pytest==8.0.1
     # via livecode-archive (pyproject.toml)
 requests==2.31.0
     # via
