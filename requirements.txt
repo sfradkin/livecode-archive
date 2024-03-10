@@ -50,7 +50,7 @@ jsonpointer==2.4
     # via jsonpatch
 oauthlib==3.2.2
     # via requests-oauthlib
-packaging==23.2
+packaging==24.0
     # via pytest
 pluggy==1.4.0
     # via pytest
