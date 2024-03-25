@@ -6,7 +6,7 @@
 #
 black==24.2.0
     # via livecode-archive (pyproject.toml)
-cachetools==5.3.2
+cachetools==5.3.3
     # via google-auth
 certifi==2024.2.2
     # via requests
@@ -28,7 +28,7 @@ docopt==0.6.2
     # via internetarchive
 ffmpeg-python==0.2.0
     # via livecode-archive (pyproject.toml)
-filelock==3.13.1
+filelock==3.13.3
     # via virtualenv
 future==1.0.0
     # via ffmpeg-python
@@ -104,7 +104,7 @@ pyasn1-modules==0.3.0
     # via google-auth
 pycln==2.4.0
     # via livecode-archive (pyproject.toml)
-pyparsing==3.1.1
+pyparsing==3.1.2
     # via httplib2
 pytest==8.0.1
     # via livecode-archive (pyproject.toml)
@@ -126,13 +126,13 @@ rsa==4.9
     # via google-auth
 schema==0.7.5
     # via internetarchive
-tomlkit==0.12.3
+tomlkit==0.12.4
     # via pycln
 tqdm==4.66.2
     # via
     #   internetarchive
     #   livecode-archive (pyproject.toml)
-typer==0.9.0
+typer==0.9.4
     # via pycln
 typing-extensions==4.9.0
     # via
