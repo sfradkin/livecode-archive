@@ -92,7 +92,7 @@ pluggy==1.4.0
     # via pytest
 pre-commit==3.6.2
     # via livecode-archive (pyproject.toml)
-protobuf==4.25.3
+protobuf==5.27.0
     # via
     #   google-api-core
     #   googleapis-common-protos
