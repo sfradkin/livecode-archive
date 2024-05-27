@@ -76,7 +76,7 @@ nodeenv==1.8.0
     # via pre-commit
 oauthlib==3.2.2
     # via requests-oauthlib
-packaging==23.2
+packaging==24.0
     # via
     #   black
     #   pytest
