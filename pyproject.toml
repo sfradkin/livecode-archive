@@ -2,12 +2,14 @@
 name = "livecode-archive"
 version = "1.01"
 description = "A tool used to archive all of the videos from a livecode stream using muxy"
-license = "CC0-1.0"
+classifiers = [
+       "License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"
+]
 authors = [
-       "Scott Fradkin <scott@fradkin.com>"
+       {name = "Scott Fradkin", email = "scott@fradkin.com"}
 ]
 maintainers = [
-       "Scott Fradkin <scott@fradkin.com>"
+       {name = "Scott Fradkin", email = "scott@fradkin.com"}
 ]
 dependencies = ["pytest",
                 "internetarchive",
