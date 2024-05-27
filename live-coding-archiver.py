@@ -1,3 +1,4 @@
+import html
 import logging
 import os
 import re
@@ -7,6 +8,7 @@ import subprocess
 import sys
 
 import ffmpeg  # pip install ffmpeg-python
+import json
 import requests
 from tqdm import tqdm
 from unidecode import unidecode
@@ -196,7 +198,18 @@ processed_merge = 0
 processed_normal_limit = 200
 processed_merge_limit = 200
 
+archive_urls = []
+processed_publishers = []
+pub_inc = 1
+
 for result in results:
+    archive_urls = []
+
+    if result['publisher_name'] in processed_publishers:
+        pub_inc += 1
+    else:
+        pub_inc = 1
+
     print(f"processing stream: {result['url']}, {result['publisher_name']}")
     logging.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     logging.info(f"processing stream: {result['url']}, {result['publisher_name']}")
@@ -215,17 +228,24 @@ for result in results:
                 publisher_name = result["publisher_name"].lower().replace(" ", "-")
                 punct_chars = re.escape(string.punctuation)
                 publisher_name = re.sub(r"[" + punct_chars + "]", "-", publisher_name)
-                publisher_name = unidecode(publisher_name)
+                publisher_name = unidecode(publisher_name).replace(" ", "-")
 
-                description = result["description"].replace("<", "&lt;")
+                if pub_inc > 1:
+                    publisher_name = f"{publisher_name}-{pub_inc}"
+
+                description = html.escape(result["description"])
+                artist_name = html.escape(result["publisher_name"])
+                title = html.escape(result["title"])
 
                 result_data = {
                     "archive_id": livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
                     "files": merge_file,
-                    "artist_name": result["publisher_name"][
+                    "artist_name_title": artist_name[
                         0:40
-                    ],  # limit the publisher_name to 40 chars to avoid length issues with youtube
+                    ], # limit the publisher_name to 40 chars to avoid length issues with youtube
+                    "artist_name": artist_name,
                     "user_desc": description,
+                    "title": title,
                     "location": result["location"],
                     "performance_date": result["starts_at"][0:10],
                     "performance_time": result["starts_at"][11:16],
@@ -242,6 +262,7 @@ for result in results:
                     else:
                         print(f"added youtube video {video_id}")
                         logging.info(f"added youtube video {video_id}")
+                        archive_urls.append("https://www.youtube.com/watch?v=" + video_id)
 
                 else:
                     print("skipping youtube upload")
@@ -252,6 +273,7 @@ for result in results:
                     archiveorg_upload.uploadFile(result_data, templates)
                     print("completed archive.org upload")
                     logging.info("completed archive.org upload")
+                    archive_urls.append("https://archive.org/details/" + result_data['archive_id'])
                 else:
                     print("skipping archive.org upload")
 
@@ -274,15 +296,24 @@ for result in results:
                 publisher_name = result["publisher_name"].lower().replace(" ", "-")
                 punct_chars = re.escape(string.punctuation)
                 publisher_name = re.sub(r"[" + punct_chars + "]", "-", publisher_name)
-                publisher_name = unidecode(publisher_name)
+                publisher_name = unidecode(publisher_name).replace(" ", "-")
 
-                description = result["description"].replace("<", "&lt;")
+                if pub_inc > 1:
+                    publisher_name = f"{publisher_name}-{pub_inc}"
+
+                description = html.escape(result["description"])
+                artist_name = html.escape(result["publisher_name"])
+                title = html.escape(result["title"])
 
                 result_data = {
                     "archive_id": livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
                     "files": local_file,
-                    "artist_name": result["publisher_name"],
+                    "artist_name_title": artist_name[
+                        0:40
+                    ], # limit the publisher_name to 40 chars to avoid length issues with youtube
+                    "artist_name": artist_name,
                     "user_desc": description,
+                    "title": title,
                     "location": result["location"],
                     "performance_date": result["starts_at"][0:10],
                     "performance_time": result["starts_at"][11:16],
@@ -299,6 +330,7 @@ for result in results:
                     else:
                         print(f"added youtube video {video_id}")
                         logging.info(f"added youtube video {video_id}")
+                        archive_urls.append("https://www.youtube.com/watch?v=" + video_id)
 
                 else:
                     print("skipping youtube upload")
@@ -309,6 +341,7 @@ for result in results:
                     archiveorg_upload.uploadFile(result_data, templates)
                     print("completed archive.org upload")
                     logging.info("completed archive.org upload")
+                    archive_urls.append("https://archive.org/details/" + result_data['archive_id'])
                 else:
                     print("skipping archive.org upload")
 
@@ -317,6 +350,28 @@ for result in results:
             else:
                 print("at the process normal files limit, skipping")
                 pass
+        # update the archive URLs
+        # use PATCH
+
+        # update_json = json.dumps({"archive_urls": archive_urls })
+        # print(f"updating archive URLs with: {update_json}")
+
+        # headers2 = {
+        #     "accept": "application/json",
+        #     "Content-Type": "application/json",
+        #     "Authorization": "Api-Key " + livecode_config[CONFIG_GLOBAL]["muxy_auth_token"]
+        # }
+
+        # r = requests.get(url=result['url'], headers=headers2)
+        # patch_data = r.json()
+        # patch_data['archive_urls'] = archive_urls
+
+        # r2 = requests.patch(url=result['url'], data=patch_data, headers=headers2)
+        # logging.info(r2)
+
+        if result['publisher_name'] not in processed_publishers:
+            processed_publishers.append(result['publisher_name'])
+
     else:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")
 
