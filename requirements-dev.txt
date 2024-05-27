@@ -6,7 +6,7 @@
 #
 black==24.2.0
     # via livecode-archive (pyproject.toml)
-cachetools==5.3.2
+cachetools==5.3.3
     # via google-auth
 certifi==2024.2.2
     # via requests
@@ -52,7 +52,7 @@ httplib2==0.22.0
     # via
     #   google-api-python-client
     #   google-auth-httplib2
-identify==2.5.35
+identify==2.5.36
     # via pre-commit
 idna==3.6
     # via requests
@@ -84,7 +84,7 @@ pathspec==0.12.1
     # via
     #   black
     #   pycln
-platformdirs==4.2.0
+platformdirs==4.2.2
     # via
     #   black
     #   virtualenv
@@ -104,7 +104,7 @@ pyasn1-modules==0.3.0
     # via google-auth
 pycln==2.4.0
     # via livecode-archive (pyproject.toml)
-pyparsing==3.1.1
+pyparsing==3.1.2
     # via httplib2
 pytest==8.0.1
     # via livecode-archive (pyproject.toml)
@@ -124,9 +124,9 @@ requests-oauthlib==1.3.1
     # via google-auth-oauthlib
 rsa==4.9
     # via google-auth
-schema==0.7.5
+schema==0.7.7
     # via internetarchive
-tomlkit==0.12.3
+tomlkit==0.12.5
     # via pycln
 tqdm==4.66.2
     # via
