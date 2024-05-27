@@ -42,7 +42,7 @@ idna==3.6
     # via requests
 iniconfig==2.0.0
     # via pytest
-internetarchive==3.7.0
+internetarchive==4.1.0
     # via livecode-archive (pyproject.toml)
 jsonpatch==1.33
     # via internetarchive
