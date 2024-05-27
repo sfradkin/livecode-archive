@@ -128,7 +128,7 @@ schema==0.7.7
     # via internetarchive
 tomlkit==0.12.5
     # via pycln
-tqdm==4.66.2
+tqdm==4.66.3
     # via
     #   internetarchive
     #   livecode-archive (pyproject.toml)

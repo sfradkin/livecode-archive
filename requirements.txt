@@ -79,7 +79,7 @@ rsa==4.9
     # via google-auth
 schema==0.7.7
     # via internetarchive
-tqdm==4.66.2
+tqdm==4.66.3
     # via
     #   internetarchive
     #   livecode-archive (pyproject.toml)
