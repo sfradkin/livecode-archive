@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=dev --output-file=requirements-dev.txt pyproject.toml
 #
-black==24.2.0
+black==24.3.0
     # via livecode-archive (pyproject.toml)
 cachetools==5.3.3
     # via google-auth
