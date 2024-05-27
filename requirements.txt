@@ -18,11 +18,11 @@ ffmpeg-python==0.2.0
     # via livecode-archive (pyproject.toml)
 future==1.0.0
     # via ffmpeg-python
-google-api-core==2.17.1
+google-api-core==2.19.0
     # via google-api-python-client
-google-api-python-client==2.118.0
+google-api-python-client==2.130.0
     # via livecode-archive (pyproject.toml)
-google-auth==2.28.1
+google-auth==2.29.0
     # via
     #   google-api-core
     #   google-api-python-client
@@ -32,7 +32,7 @@ google-auth-httplib2==0.2.0
     # via google-api-python-client
 google-auth-oauthlib==1.2.0
     # via livecode-archive (pyproject.toml)
-googleapis-common-protos==1.62.0
+googleapis-common-protos==1.63.0
     # via google-api-core
 httplib2==0.22.0
     # via
@@ -42,7 +42,7 @@ idna==3.6
     # via requests
 iniconfig==2.0.0
     # via pytest
-internetarchive==3.6.0
+internetarchive==3.7.0
     # via livecode-archive (pyproject.toml)
 jsonpatch==1.33
     # via internetarchive
@@ -52,21 +52,21 @@ oauthlib==3.2.2
     # via requests-oauthlib
 packaging==23.2
     # via pytest
-pluggy==1.4.0
+pluggy==1.5.0
     # via pytest
 protobuf==4.25.3
     # via
     #   google-api-core
     #   googleapis-common-protos
-pyasn1==0.5.1
+pyasn1==0.6.0
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.3.0
+pyasn1-modules==0.4.0
     # via google-auth
 pyparsing==3.1.2
     # via httplib2
-pytest==8.0.1
+pytest==8.2.1
     # via livecode-archive (pyproject.toml)
 requests==2.31.0
     # via
