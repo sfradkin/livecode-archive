@@ -62,7 +62,7 @@ isort==5.13.2
     # via livecode-archive (pyproject.toml)
 jsonpatch==1.33
     # via internetarchive
-jsonpointer==2.4
+jsonpointer==3.0.0
     # via jsonpatch
 libcst==1.4.0
     # via pycln
