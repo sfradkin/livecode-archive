@@ -44,7 +44,7 @@ internetarchive==4.1.0
     # via livecode-archive (pyproject.toml)
 jsonpatch==1.33
     # via internetarchive
-jsonpointer==2.4
+jsonpointer==3.0.0
     # via jsonpatch
 oauthlib==3.2.2
     # via requests-oauthlib
