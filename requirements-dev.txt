@@ -94,7 +94,7 @@ pre-commit==3.7.1
     # via livecode-archive (pyproject.toml)
 proto-plus==1.23.0
     # via google-api-core
-protobuf==4.25.3
+protobuf==5.28.1
     # via
     #   google-api-core
     #   googleapis-common-protos
