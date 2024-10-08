@@ -90,7 +90,7 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-pre-commit==3.7.1
+pre-commit==4.0.1
     # via livecode-archive (pyproject.toml)
 proto-plus==1.23.0
     # via google-api-core
