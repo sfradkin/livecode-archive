@@ -28,7 +28,7 @@ google-auth==2.29.0
     #   google-auth-oauthlib
 google-auth-httplib2==0.2.0
     # via google-api-python-client
-google-auth-oauthlib==1.2.0
+google-auth-oauthlib==1.2.1
     # via livecode-archive (pyproject.toml)
 googleapis-common-protos==1.63.0
     # via google-api-core
@@ -54,22 +54,22 @@ pluggy==1.5.0
     # via pytest
 proto-plus==1.23.0
     # via google-api-core
-protobuf==4.25.3
+protobuf==4.25.5
     # via
     #   google-api-core
     #   googleapis-common-protos
     #   proto-plus
-pyasn1==0.6.0
+pyasn1==0.6.1
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.4.0
+pyasn1-modules==0.4.1
     # via google-auth
-pyparsing==3.1.2
+pyparsing==3.1.4
     # via httplib2
 pytest==8.2.1
     # via livecode-archive (pyproject.toml)
-requests==2.32.2
+requests==2.32.3
     # via
     #   google-api-core
     #   internetarchive
@@ -80,7 +80,7 @@ rsa==4.9
     # via google-auth
 schema==0.7.7
     # via internetarchive
-tqdm==4.66.4
+tqdm==4.66.5
     # via
     #   internetarchive
     #   livecode-archive (pyproject.toml)
