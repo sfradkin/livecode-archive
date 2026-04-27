@@ -56,7 +56,7 @@ idna==3.7
     # via requests
 iniconfig==2.0.0
     # via pytest
-internetarchive==4.1.0
+internetarchive==5.5.1
     # via livecode-archive (pyproject.toml)
 isort==5.13.2
     # via livecode-archive (pyproject.toml)
