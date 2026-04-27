@@ -63,7 +63,7 @@ pyasn1==0.6.0
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.4.0
+pyasn1-modules==0.4.2
     # via google-auth
 pyparsing==3.1.2
     # via httplib2
@@ -76,9 +76,9 @@ requests==2.32.2
     #   requests-oauthlib
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
-rsa==4.9
+rsa==4.9.1
     # via google-auth
-schema==0.7.7
+schema==0.7.8
     # via internetarchive
 tqdm==4.66.4
     # via
