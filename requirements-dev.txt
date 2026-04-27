@@ -153,7 +153,7 @@ urllib3==2.2.1
     # via
     #   internetarchive
     #   requests
-virtualenv==20.26.2
+virtualenv==20.36.1
     # via pre-commit
 
 # The following packages are considered to be unsafe in a requirements file:
