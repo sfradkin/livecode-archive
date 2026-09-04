@@ -58,7 +58,7 @@ iniconfig==2.0.0
     # via pytest
 internetarchive==4.1.0
     # via livecode-archive (pyproject.toml)
-isort==5.13.2
+isort==9.0.1
     # via livecode-archive (pyproject.toml)
 jsonpatch==1.33
     # via internetarchive
