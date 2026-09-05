@@ -127,7 +127,7 @@ requests==2.32.2
     #   requests-oauthlib
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
-rich==13.7.1
+rich==15.0.0
     # via typer
 rsa==4.9
     # via google-auth
