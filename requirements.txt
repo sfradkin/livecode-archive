@@ -95,7 +95,7 @@ protobuf==7.36.2
     #   google-api-core
     #   googleapis-common-protos
     #   proto-plus
-pyasn1==0.6.4
+pyasn1==0.6.5
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   pyasn1-modules
