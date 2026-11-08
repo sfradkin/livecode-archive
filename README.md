@@ -81,12 +81,15 @@ Dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 ## Set list
 
 After all performances are archived, the archiver generates a plain-text set list (the `stream_title`, then every
-set in chronological order with its UTC start time, artist, title and description; sets with no recording are
-marked) and uploads it to its own archive.org item, `<archive_id_prefix>setlist`. It is skipped when `skipArchiveOrg=True`.
+set in chronological order with its UTC start time, artist, title, description and archive.org URL; sets with no
+recording are marked) and uploads it to its own archive.org item, `<archive_id_prefix>setlist`. It is skipped when `skipArchiveOrg=True`.
 
 To preview the set list for any metadata file without archiving anything:
 
 `uv run generate-setlist.py around-the-world.json --title "Around the World"`
+
+Add `--archive-id-prefix <prefix>` to include predicted archive.org URLs (assumes every set with recordings is uploaded under that
+prefix). In a real run the archiver only links sets whose archive.org upload succeeded.
 
 The output goes to `setlists/<metadata-name>-setlist.txt`, or use `--output PATH`. `setlists/` and `*-setlist.txt` are
 gitignored so test set lists are never committed.

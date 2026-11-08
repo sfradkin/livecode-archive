@@ -9,7 +9,7 @@ import argparse
 import os
 
 from utils.jsonloader import JsonLoader
-from utils.setlist import write_setlist
+from utils.setlist import predict_archive_ids, write_setlist
 
 DEFAULT_OUTPUT_DIR = "setlists"
 
@@ -19,6 +19,10 @@ def main(argv: list[str] | None = None) -> str:
     parser.add_argument("metadata_file", help="path to the metadata JSON file")
     parser.add_argument("--title", required=True, help="stream title to put at the top of the set list")
     parser.add_argument("--output", help=f"output path (default: {DEFAULT_OUTPUT_DIR}/<metadata-stem>-setlist.txt)")
+    parser.add_argument(
+        "--archive-id-prefix",
+        help="include predicted archive.org URLs, assuming every set with recordings was uploaded under this prefix",
+    )
     args = parser.parse_args(argv)
 
     output = args.output
@@ -27,7 +31,8 @@ def main(argv: list[str] | None = None) -> str:
         output = os.path.join(DEFAULT_OUTPUT_DIR, f"{stem}-setlist.txt")
 
     metadata = JsonLoader.loadJsonMetadataFromFile(args.metadata_file)
-    path = write_setlist(args.title, metadata["results"], output)
+    archive_ids = predict_archive_ids(metadata["results"], args.archive_id_prefix) if args.archive_id_prefix else None
+    path = write_setlist(args.title, metadata["results"], output, archive_ids)
     print(f"wrote set list for {len(metadata['results'])} sets to {path}")
     return path
 
