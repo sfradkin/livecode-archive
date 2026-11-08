@@ -176,3 +176,15 @@ def test_cli_with_archive_id_prefix_adds_urls(tmp_path):
     _load_cli().main([str(metadata_file), "--title", "T", "--output", str(output), "--archive-id-prefix", "p-"])
 
     assert "Archive: https://archive.org/details/p-solo" in output.read_text(encoding="utf-8")
+
+
+def test_predict_archive_ids_treats_names_differing_in_case_or_punctuation_as_same_publisher():
+    results = [
+        _result("Kretopi", "2026-11-06T08:00:00Z", url="u1"),
+        _result("kretopi", "2026-11-06T09:00:00Z", url="u2"),
+        _result("claro F!x", "2026-11-06T10:00:00Z", url="u3"),
+        _result("claro F-x", "2026-11-06T11:00:00Z", url="u4"),
+    ]
+    ids = predict_archive_ids(results, "p-")
+    assert ids == {"u1": "p-kretopi", "u2": "p-kretopi-2", "u3": "p-claro-f-x", "u4": "p-claro-f-x-2"}
+    assert len(set(ids.values())) == len(ids)

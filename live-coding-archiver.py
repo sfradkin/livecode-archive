@@ -204,7 +204,10 @@ pub_inc = 1
 for result in results:
     archive_urls = []
 
-    if result["publisher_name"] in processed_publishers:
+    # identify repeat publishers by their archive id slug (not the raw name) so names that differ only in case or
+    # punctuation, e.g. "Kretopi" and "kretopi", get distinct archive.org item ids instead of colliding
+    publisher_key = build_archive_id(result["publisher_name"], "")
+    if publisher_key in processed_publishers:
         pub_inc += 1
     else:
         pub_inc = 1
@@ -362,8 +365,8 @@ for result in results:
         # r2 = requests.patch(url=result['url'], data=patch_data, headers=headers2)
         # logging.info(r2)
 
-        if result["publisher_name"] not in processed_publishers:
-            processed_publishers.append(result["publisher_name"])
+        if publisher_key not in processed_publishers:
+            processed_publishers.append(publisher_key)
 
     else:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")

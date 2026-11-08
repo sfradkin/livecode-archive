@@ -25,7 +25,8 @@ def build_archive_id(publisher_name: str, prefix: str, pub_inc: int = 1) -> str:
 def predict_archive_ids(results: list[dict], prefix: str) -> dict[str, str]:
     """Predict the archive.org item id of every set that has recordings, keyed by the set's ``url``.
 
-    Mirrors the numbering in live-coding-archiver.py (a publisher's repeat sets get -2, -3, ...) and assumes
+    Mirrors the numbering in live-coding-archiver.py (a publisher's repeat sets get -2, -3, ... where names that
+    differ only in case or punctuation count as the same publisher) and assumes
     every set with recordings is uploaded. Used for previewing; the archiver records the real ids.
     """
     ids: dict[str, str] = {}
@@ -34,12 +35,14 @@ def predict_archive_ids(results: list[dict], prefix: str) -> dict[str, str]:
 
     for result in results:
         name = result["publisher_name"]
-        pub_inc = pub_inc + 1 if name in processed_publishers else 1
+        # repeat publishers are identified by their archive id slug, matching live-coding-archiver.py
+        key = build_archive_id(name, "")
+        pub_inc = pub_inc + 1 if key in processed_publishers else 1
 
         if result.get("recordings"):
             ids[result["url"]] = build_archive_id(name, prefix, pub_inc)
-            if name not in processed_publishers:
-                processed_publishers.append(name)
+            if key not in processed_publishers:
+                processed_publishers.append(key)
 
     return ids
 
