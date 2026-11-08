@@ -83,7 +83,7 @@ for result in results:
     if len(result_recs) > 0:
         print("more than 0 recording files")
         if len(result_recs) > 1:
-            file_arr = []
+            file_arr: list[str] = []
             temp_base_dir = livecode_config[CONFIG_GLOBAL]["video_file_location"]
 
             # download all the files in the array

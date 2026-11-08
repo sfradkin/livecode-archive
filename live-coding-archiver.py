@@ -8,7 +8,6 @@ import subprocess
 import sys
 
 import ffmpeg  # pip install ffmpeg-python
-import json
 import requests
 from tqdm import tqdm
 from unidecode import unidecode
@@ -198,14 +197,14 @@ processed_merge = 0
 processed_normal_limit = 200
 processed_merge_limit = 200
 
-archive_urls = []
+archive_urls: list[str] = []
 processed_publishers = []
 pub_inc = 1
 
 for result in results:
     archive_urls = []
 
-    if result['publisher_name'] in processed_publishers:
+    if result["publisher_name"] in processed_publishers:
         pub_inc += 1
     else:
         pub_inc = 1
@@ -242,7 +241,7 @@ for result in results:
                     "files": merge_file,
                     "artist_name_title": artist_name[
                         0:40
-                    ], # limit the publisher_name to 40 chars to avoid length issues with youtube
+                    ],  # limit the publisher_name to 40 chars to avoid length issues with youtube
                     "artist_name": artist_name,
                     "user_desc": description,
                     "title": title,
@@ -273,7 +272,7 @@ for result in results:
                     archiveorg_upload.uploadFile(result_data, templates)
                     print("completed archive.org upload")
                     logging.info("completed archive.org upload")
-                    archive_urls.append("https://archive.org/details/" + result_data['archive_id'])
+                    archive_urls.append("https://archive.org/details/" + result_data["archive_id"])
                 else:
                     print("skipping archive.org upload")
 
@@ -281,7 +280,6 @@ for result in results:
                 cleanupFile(merge_file)
             else:
                 print("at the process merge files limit, skipping")
-                pass
         else:
             if processed_normal < processed_normal_limit:
                 # grab data required and put into a dictionary with known keys
@@ -310,7 +308,7 @@ for result in results:
                     "files": local_file,
                     "artist_name_title": artist_name[
                         0:40
-                    ], # limit the publisher_name to 40 chars to avoid length issues with youtube
+                    ],  # limit the publisher_name to 40 chars to avoid length issues with youtube
                     "artist_name": artist_name,
                     "user_desc": description,
                     "title": title,
@@ -341,7 +339,7 @@ for result in results:
                     archiveorg_upload.uploadFile(result_data, templates)
                     print("completed archive.org upload")
                     logging.info("completed archive.org upload")
-                    archive_urls.append("https://archive.org/details/" + result_data['archive_id'])
+                    archive_urls.append("https://archive.org/details/" + result_data["archive_id"])
                 else:
                     print("skipping archive.org upload")
 
@@ -349,7 +347,6 @@ for result in results:
                 cleanupFile(local_file)
             else:
                 print("at the process normal files limit, skipping")
-                pass
         # update the archive URLs
         # use PATCH
 
@@ -369,8 +366,8 @@ for result in results:
         # r2 = requests.patch(url=result['url'], data=patch_data, headers=headers2)
         # logging.info(r2)
 
-        if result['publisher_name'] not in processed_publishers:
-            processed_publishers.append(result['publisher_name'])
+        if result["publisher_name"] not in processed_publishers:
+            processed_publishers.append(result["publisher_name"])
 
     else:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")

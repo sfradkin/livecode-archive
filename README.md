@@ -10,34 +10,30 @@ videos together if needed, then re-uploads to both archive.org and YouTube with 
 
 Please contact the maintainer for information on setting up authentication correctly.
 
-Python 3.X is required.
+This project uses [uv](https://docs.astral.sh/uv/) to manage Python and dependencies. Install it, then from the
+repo root run:
 
-`pip install -r requirements.txt`
+`uv sync`
+
+This installs the Python version pinned in `.python-version` (if needed) and all dependencies, including the dev group.
+Python 3.12 or newer is required.
 
 Copy the `live-code-uploader-template.ini` file to `live-code-uploader.ini` and fill out the required values.
 
-Install the `pre-commit` tool:
+The `pre-commit` tool is installed as part of the dev group. Install the git hook locally:
 
-`pip install pre-commit`
-
-Verify with:
-
-`pre-commit --version`
-
-Now install locally:
-
-`pre-commit install`
+`uv run pre-commit install`
 
 You can now test it by running:
 
-`pre-commit run --all-files`
+`uv run pre-commit run --all-files`
 
 It will run prior to any commit now.
 
 
 ## Usage
 
-`python ./live-coding-archiver.py`
+`uv run live-coding-archiver.py`
 
 Some messages will output to the console, other debug information will output to the `archiver.log` file.
 
@@ -75,8 +71,8 @@ There are a number of properties to fill out in the `live-code-uploader.ini` fil
 
 ## Other
 
-If you need to regenerate the `requirements.txt` or `requirements-dev.txt` files for any reason use `pip-tools`.
+Dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 
-`pip-compile --upgrade -o requirements.txt pyproject.toml`
-
-`pip-compile --upgrade --extra dev -o requirements-dev.txt pyproject.toml`
+- Add a dependency: `uv add <package>` (or `uv add --dev <package>` for dev tools)
+- Upgrade everything: `uv lock --upgrade && uv sync`
+- Run the checks CI runs: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest`
