@@ -1,0 +1,59 @@
+"""Back up the files in a local directory to an FTP host over FTPS.
+
+Usage: uv run backup-to-ftp.py <local_dir> [--host HOST] [--remote-dir DIR] [--dry-run]
+
+You are prompted for the FTP username and password; nothing is stored. Files already on the server with the same
+size are skipped, so it is safe to re-run after an interruption.
+"""
+
+import argparse
+import getpass
+import ssl
+import sys
+
+from utils.ftpbackup import FtpBackup
+
+DEFAULT_HOST = "ftp.fradkin.com"
+DEFAULT_REMOTE_DIR = "public-html/live coding/around-the-world-nov-2026"
+
+
+def main(argv: list[str] | None = None, tls: bool = True) -> int:
+    # tls is only ever False in tests that talk to a plain local server; there is no command-line way to disable it
+    parser = argparse.ArgumentParser(description="Back up a local directory to an FTP host over FTPS.")
+    parser.add_argument("local_dir", help="directory containing the files to upload")
+    parser.add_argument("--host", default=DEFAULT_HOST, help=f"FTP host (default: {DEFAULT_HOST})")
+    parser.add_argument("--port", type=int, default=21, help="FTP port (default: 21)")
+    parser.add_argument(
+        "--remote-dir",
+        default=DEFAULT_REMOTE_DIR,
+        help=f"remote directory, relative to the FTP login directory (default: {DEFAULT_REMOTE_DIR})",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="list what would be uploaded without uploading")
+    args = parser.parse_args(argv)
+
+    username = input("FTP username: ")
+    password = getpass.getpass("FTP password: ")
+
+    backup = FtpBackup(args.host, username, password, args.remote_dir, port=args.port, tls=tls)
+
+    try:
+        summary = backup.upload_dir(args.local_dir, dry_run=args.dry_run)
+    except ssl.SSLCertVerificationError as e:
+        print(f"TLS certificate verification failed for {args.host}: {e}", file=sys.stderr)
+        print("Not falling back to an unverified or plain connection.", file=sys.stderr)
+        return 2
+
+    if args.dry_run:
+        print(f"dry run: {len(summary.would_upload)} to upload, {len(summary.skipped)} already present")
+        for name in summary.would_upload:
+            print(f"  would upload: {name}")
+        return 0
+
+    print(f"uploaded {len(summary.uploaded)}, skipped {len(summary.skipped)}, failed {len(summary.failed)}")
+    for name in summary.failed:
+        print(f"  FAILED: {name}", file=sys.stderr)
+    return 1 if summary.failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

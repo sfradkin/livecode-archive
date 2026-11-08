@@ -93,3 +93,21 @@ prefix). In a real run the archiver only links sets whose archive.org upload suc
 
 The output goes to `setlists/<metadata-name>-setlist.txt`, or use `--output PATH`. `setlists/` and `*-setlist.txt` are
 gitignored so test set lists are never committed.
+
+## Backups
+
+### FTP
+
+Push a directory of recordings to an FTP host over FTPS (TLS, with certificate verification; it never falls back to
+plain FTP):
+
+`uv run backup-to-ftp.py ~/Downloads/nov-2026-stream/recordings`
+
+You are prompted for the FTP username and password; nothing is stored. By default it uploads to `ftp.fradkin.com`,
+into `public-html/live coding/around-the-world-nov-2026` (relative to the FTP login directory). Override with `--host`,
+`--port` and `--remote-dir`.
+
+- `--dry-run` lists what would be uploaded without uploading or creating directories.
+- Files are uploaded as `<name>.part` and renamed once complete, and files already on the server with the same size
+  are skipped, so it is safe to re-run after an interruption. A dropped connection is retried up to 3 times per file.
+- The exit code is non-zero if any file failed.

@@ -20,12 +20,15 @@ dependencies = ["internetarchive",
                 "unidecode"]
 
 [dependency-groups]
-dev = ["pytest",
-       "pre-commit",
-       "ruff",
-       "mypy",
-       "types-requests",
-       "detect-secrets"]
+dev = [
+    "pytest",
+    "pre-commit",
+    "ruff",
+    "mypy",
+    "types-requests",
+    "detect-secrets",
+    "pyftpdlib>=2.2.0",
+]
 
 [tool.ruff]
 line-length = 120
