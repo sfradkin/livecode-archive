@@ -6,7 +6,6 @@ from utils.templater import Templater
 
 
 class ArchiveOrgUpload:
-
     MEDIA_TYPE = "movies"
     COLLECTION = "toplap"
     LICENSE_URL = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
@@ -17,7 +16,7 @@ class ArchiveOrgUpload:
         # nothing to configure at this point in time
         pass
 
-    def uploadFile(self, row_data: dict, templates: Templater) -> str:
+    def uploadFile(self, row_data: dict, templates: Templater) -> None:
 
         description = self.HTML_WRAPPER_PRE + templates.getDescription(row_data) + self.HTML_WRAPPER_POST
         description = Templater.replaceLbForAO(description)

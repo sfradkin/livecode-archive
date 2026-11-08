@@ -2,7 +2,6 @@ from string import Template
 
 
 class Templater:
-
     LINE_BREAK_REPLACEMENT_YT = chr(13) + chr(10) + chr(13) + chr(10)
     LINE_BREAK_REPLACEMENT_AO = "<br /><br />"
 

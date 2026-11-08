@@ -14,7 +14,6 @@ from utils.templater import Templater
 
 
 class YouTubeUpload:
-
     # Explicitly tell the underlying HTTP transport library not to retry, since
     # we are handling retry logic ourselves.
     httplib2.RETRIES = 1
@@ -91,14 +90,14 @@ class YouTubeUpload:
 
             except HttpError as e:
                 if e.resp.status in self.RETRIABLE_STATUS_CODES:
-                    error = "A retriable HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+                    error = f"A retriable HTTP error {e.resp.status} occurred:\n{e.content}"
                 else:
                     print(f"error uploading, code: {e.resp.status}, text: {e.content}")
                     logging.debug(f"error uploading, code: {e.resp.status}, text: {e.content}")
                     break
 
             except self.RETRIABLE_EXCEPTIONS as e:
-                error = "A retriable error occurred: %s" % e
+                error = f"A retriable error occurred: {e}"
 
             if error is not None:
                 print(error)
@@ -112,7 +111,7 @@ class YouTubeUpload:
                 print(f"Sleeping {sleep_seconds} seconds and then retrying...")
                 time.sleep(sleep_seconds)
 
-    def uploadFile(self, row_data: dict, templates: Templater) -> str:
+    def uploadFile(self, row_data: dict, templates: Templater) -> str | None:
         desc = templates.getDescription(row_data)
         desc = Templater.replaceLbForYT(desc)
 

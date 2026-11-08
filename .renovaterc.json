@@ -15,6 +15,10 @@
       "every weekend"
     ],
     "timezone": "America/Chicago",
+    "lockFileMaintenance": {
+      "enabled": true,
+      "automerge": true
+    },
     "major": {
       "automerge": false
     },
