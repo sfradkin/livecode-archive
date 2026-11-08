@@ -66,6 +66,7 @@ There are a number of properties to fill out in the `live-code-uploader.ini` fil
     video_title_template= This is a template that gets filled in and used as the title for videos
     video_description_template= This is a template that gets filled in and used as the description for videos
     archive_id_prefix= A unique string that is pre-pended to the archive.org video identifier
+    stream_title= The title of the stream, used as the heading of the generated set list
     playlist_title_template= Not currently used
     playlist_description_template= Not currently used
 
@@ -76,3 +77,16 @@ Dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 - Add a dependency: `uv add <package>` (or `uv add --dev <package>` for dev tools)
 - Upgrade everything: `uv lock --upgrade && uv sync`
 - Run the checks CI runs: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest`
+
+## Set list
+
+After all performances are archived, the archiver generates a plain-text set list (the `stream_title`, then every
+set in chronological order with its UTC start time, artist, title and description; sets with no recording are
+marked) and uploads it to its own archive.org item, `<archive_id_prefix>setlist`. It is skipped when `skipArchiveOrg=True`.
+
+To preview the set list for any metadata file without archiving anything:
+
+`uv run generate-setlist.py around-the-world.json --title "Around the World"`
+
+The output goes to `setlists/<metadata-name>-setlist.txt`, or use `--output PATH`. `setlists/` and `*-setlist.txt` are
+gitignored so test set lists are never committed.

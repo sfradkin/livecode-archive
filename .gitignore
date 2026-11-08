@@ -12,3 +12,5 @@ __pycache__
 temp*.json
 *.log
 *.egg-info
+setlists/
+*-setlist.txt

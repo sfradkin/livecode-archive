@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 
 from internetarchive import upload  # internetarchive
 
@@ -7,6 +8,7 @@ from utils.templater import Templater
 
 class ArchiveOrgUpload:
     MEDIA_TYPE = "movies"
+    SETLIST_MEDIA_TYPE = "texts"
     COLLECTION = "toplap"
     LICENSE_URL = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
     HTML_WRAPPER_PRE = '<span style="font-family:Roboto, Noto, sans-serif;font-size:15px;white-space:pre-wrap;">'
@@ -46,3 +48,24 @@ class ArchiveOrgUpload:
             print(f"An error occurred: {e}")
             logging.debug(f"An error occurred: {e}")
             pass
+
+    def uploadSetlist(self, file_path: str, archive_id: str, title: str) -> None:
+        try:
+            meta_data = dict(
+                mediatype=self.SETLIST_MEDIA_TYPE,
+                collection=self.COLLECTION,
+                date=datetime.now(UTC).strftime("%Y-%m-%d"),
+                description=title,
+                licenseurl=self.LICENSE_URL,
+                title=f"{title} - Set List",
+            )
+
+            print(f"uploading set list to archive.org: {file_path}")
+            logging.info(f"uploading set list to archive.org: {file_path}")
+
+            results = upload(archive_id, files=[file_path], metadata=meta_data, verbose=True)
+            print(f"completed uploading set list: {file_path}, url: {results[0].url}")
+            logging.info(f"completed uploading set list: {file_path}, url: {results[0].url}")
+        except Exception as e:
+            print(f"An error occurred uploading set list: {e}")
+            logging.debug(f"An error occurred uploading set list: {e}")
