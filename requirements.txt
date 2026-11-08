@@ -52,7 +52,7 @@ httplib2==0.32.0
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   google-api-python-client
     #   google-auth-httplib2
-idna==3.15
+idna==3.20
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   requests
@@ -60,7 +60,7 @@ iniconfig==2.3.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   pytest
-internetarchive==5.5.1
+internetarchive==5.12.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   livecode-archive (pyproject.toml)
@@ -111,11 +111,11 @@ pyparsing==3.3.3
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   httplib2
-pytest==9.0.3
+pytest==9.2.0
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   livecode-archive (pyproject.toml)
-requests==2.33.0
+requests==2.34.2
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements.txt
     #   google-api-core

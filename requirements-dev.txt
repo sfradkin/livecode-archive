@@ -83,7 +83,7 @@ identify==2.6.20
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   pre-commit
-idna==3.15
+idna==3.20
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   requests
@@ -91,7 +91,7 @@ iniconfig==2.3.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   pytest
-internetarchive==5.5.1
+internetarchive==5.12.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   livecode-archive (pyproject.toml)
@@ -181,7 +181,7 @@ pycln==2.6.1
     #   livecode-archive (pyproject.toml)
 pycparser==3.12
     # via cffi
-pygments==2.20.0
+pygments==2.21.0
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   pytest
@@ -190,7 +190,7 @@ pyparsing==3.3.3
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   httplib2
-pytest==9.0.3
+pytest==9.2.0
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   livecode-archive (pyproject.toml)
@@ -205,7 +205,7 @@ pyyaml==6.0.3
     #   libcst
     #   pre-commit
     #   pycln
-requests==2.33.0
+requests==2.34.2
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   detect-secrets
