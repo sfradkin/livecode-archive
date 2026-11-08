@@ -468,7 +468,7 @@ def test_cli_has_no_flag_to_disable_tls():
     cli = _load_cli()
     with pytest.raises(SystemExit):
         cli.main(["somedir", "sub", "--no-tls"])
-    assert cli.DEFAULT_HOST == "ftp.fradkin.com"
+    assert cli.DEFAULT_HOST == "sh-cp16.lax2.servername.online"
     assert cli.DEFAULT_BASE_DIR == "public_html/live coding"
 
 

@@ -105,9 +105,12 @@ plain FTP):
 
 `uv run backup-to-ftp.py ~/Downloads/nov-2026-stream/recordings around-the-world-nov-2026`
 
-Files go to `public_html/live coding/<subdirectory>` on `ftp.fradkin.com` (relative to the FTP login directory); the
+Files go to `public_html/live coding/<subdirectory>` on `sh-cp16.lax2.servername.online` (relative to the FTP login directory); the
 subdirectory is required and must be a relative name (no leading `/` or `..`). You are prompted for the FTP username
 and password; nothing is stored. Override the server and base directory with `--host`, `--port` and `--base-dir`.
+
+The default host is the name on the server's TLS certificate. `ftp.fradkin.com` resolves to the same address but
+fails certificate verification (hostname mismatch), and the script deliberately will not connect without verifying.
 
 - `--dry-run` lists what would be uploaded without uploading or creating directories.
 - Files are uploaded as `<name>.part` and renamed once complete, and files already on the server with the same size

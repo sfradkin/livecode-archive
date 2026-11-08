@@ -16,7 +16,9 @@ import sys
 
 from utils.ftpbackup import DEFAULT_DIR_MODE, DEFAULT_FILE_MODE, FtpBackup
 
-DEFAULT_HOST = "ftp.fradkin.com"
+# The FTP server's TLS certificate (Let's Encrypt) is issued for the hosting server's own hostname, not for
+# ftp.fradkin.com, although both resolve to the same address. Verification only passes against this name.
+DEFAULT_HOST = "sh-cp16.lax2.servername.online"
 DEFAULT_BASE_DIR = "public_html/live coding"
 
 
@@ -78,7 +80,11 @@ def main(argv: list[str] | None = None, tls: bool = True) -> int:
         summary = backup.upload_dir(args.local_dir, dry_run=args.dry_run)
     except ssl.SSLCertVerificationError as e:
         print(f"TLS certificate verification failed for {args.host}: {e}", file=sys.stderr)
-        print("Not falling back to an unverified or plain connection.", file=sys.stderr)
+        print(
+            "Not falling back to an unverified or plain connection. If the certificate is issued for a different "
+            "hostname that points at the same server, pass that name with --host.",
+            file=sys.stderr,
+        )
         return 2
 
     if args.dry_run:
