@@ -101,17 +101,19 @@ gitignored so test set lists are never committed.
 Push a directory of recordings to an FTP host over FTPS (TLS, with certificate verification; it never falls back to
 plain FTP):
 
-`uv run backup-to-ftp.py ~/Downloads/nov-2026-stream/recordings`
+`uv run backup-to-ftp.py <local_dir> <subdirectory>`, for example:
 
-You are prompted for the FTP username and password; nothing is stored. By default it uploads to `ftp.fradkin.com`,
-into `public-html/live coding/around-the-world-nov-2026` (relative to the FTP login directory). Override with `--host`,
-`--port` and `--remote-dir`.
+`uv run backup-to-ftp.py ~/Downloads/nov-2026-stream/recordings around-the-world-nov-2026`
+
+Files go to `public_html/live coding/<subdirectory>` on `ftp.fradkin.com` (relative to the FTP login directory); the
+subdirectory is required and must be a relative name (no leading `/` or `..`). You are prompted for the FTP username
+and password; nothing is stored. Override the server and base directory with `--host`, `--port` and `--base-dir`.
 
 - `--dry-run` lists what would be uploaded without uploading or creating directories.
 - Files are uploaded as `<name>.part` and renamed once complete, and files already on the server with the same size
   are skipped, so it is safe to re-run after an interruption. A dropped connection is retried up to 3 times per file.
 - Uploaded files are set to `644` and directories the script creates to `755` using `SITE CHMOD` (override with
   `--file-mode` / `--dir-mode`, octal). Files skipped as already present are chmod-ed too, so a re-run repairs
-  permissions from an earlier run. Files under `public-html` with these modes can be served by the web server.
+  permissions from an earlier run. Files under `public_html` with these modes can be served by the web server.
 - The exit code is non-zero if any file failed or its permissions could not be set. A server that does not support
   `SITE CHMOD` fails right away, before anything is uploaded.

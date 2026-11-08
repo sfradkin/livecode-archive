@@ -14,7 +14,7 @@ from pyftpdlib.servers import FTPServer
 from utils.ftpbackup import MAX_ATTEMPTS, PART_SUFFIX, FtpBackup
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-REMOTE_DIR = "public-html/live coding/stream"
+REMOTE_DIR = "public_html/live coding/stream"
 
 
 # ---------------------------------------------------------------- in-memory fake FTP server
@@ -143,7 +143,7 @@ def local_dir(tmp_path: Path) -> Path:
     return d
 
 
-REMOTE = ("public-html", "live coding", "stream")
+REMOTE = ("public_html", "live coding", "stream")
 
 
 # ---------------------------------------------------------------- unit tests (fake FTP)
@@ -283,18 +283,18 @@ def test_uploaded_files_get_644_and_created_dirs_get_755(local_dir):
 
     assert server.modes[(*REMOTE, "a.flv")] == 0o644
     assert server.modes[(*REMOTE, "b.flv")] == 0o644
-    assert server.modes[("public-html",)] == 0o755
-    assert server.modes[("public-html", "live coding")] == 0o755
+    assert server.modes[("public_html",)] == 0o755
+    assert server.modes[("public_html", "live coding")] == 0o755
     assert server.modes[REMOTE] == 0o755
 
 
 def test_existing_directories_are_not_chmodded(local_dir):
     server = FakeServer()
-    server.put(("public-html",), "index.html", b"x")  # public-html already exists
+    server.put(("public_html",), "index.html", b"x")  # public_html already exists
     _backup(server).upload_dir(str(local_dir))
 
-    assert ("public-html",) not in server.modes
-    assert server.modes[("public-html", "live coding")] == 0o755
+    assert ("public_html",) not in server.modes
+    assert server.modes[("public_html", "live coding")] == 0o755
 
 
 def test_skipped_files_are_chmodded_too(local_dir):
@@ -385,7 +385,7 @@ def test_integration_uploads_byte_identical_files_into_nested_dir_with_space(loc
 
     summary = _real_backup(port).upload_dir(str(local_dir))
 
-    dest = home / "public-html" / "live coding" / "stream"
+    dest = home / "public_html" / "live coding" / "stream"
     assert sorted(summary.uploaded) == ["a.flv", "b.flv", "big.flv"]
     assert (dest / "a.flv").read_bytes() == b"aaaa"
     assert (dest / "big.flv").read_bytes() == big
@@ -403,7 +403,7 @@ def test_integration_second_run_skips_everything(local_dir, ftp_server):
 
 def test_integration_truncated_remote_file_is_replaced(local_dir, ftp_server):
     home, port = ftp_server
-    dest = home / "public-html" / "live coding" / "stream"
+    dest = home / "public_html" / "live coding" / "stream"
     dest.mkdir(parents=True)
     (dest / "b.flv").write_bytes(b"bb")  # stale, wrong size
 
@@ -442,10 +442,12 @@ def test_cli_uploads_and_returns_zero(local_dir, ftp_server, monkeypatch, capsys
     cli = _load_cli()
     _prompts(monkeypatch, cli)
 
-    code = cli.main([str(local_dir), "--host", "127.0.0.1", "--port", str(port), "--remote-dir", "out/dir"], tls=False)
+    code = cli.main(
+        [str(local_dir), "out/dir", "--host", "127.0.0.1", "--port", str(port), "--base-dir", "base"], tls=False
+    )
 
     assert code == 0
-    assert (home / "out" / "dir" / "a.flv").read_bytes() == b"aaaa"
+    assert (home / "base" / "out" / "dir" / "a.flv").read_bytes() == b"aaaa"
     assert "uploaded 2, skipped 0, failed 0" in capsys.readouterr().out
 
 
@@ -454,7 +456,7 @@ def test_cli_dry_run_lists_files(local_dir, ftp_server, monkeypatch, capsys):
     cli = _load_cli()
     _prompts(monkeypatch, cli)
 
-    code = cli.main([str(local_dir), "--host", "127.0.0.1", "--port", str(port), "--dry-run"], tls=False)
+    code = cli.main([str(local_dir), "sub", "--host", "127.0.0.1", "--port", str(port), "--dry-run"], tls=False)
 
     out = capsys.readouterr().out
     assert code == 0
@@ -465,26 +467,58 @@ def test_cli_dry_run_lists_files(local_dir, ftp_server, monkeypatch, capsys):
 def test_cli_has_no_flag_to_disable_tls():
     cli = _load_cli()
     with pytest.raises(SystemExit):
-        cli.main(["somedir", "--no-tls"])
+        cli.main(["somedir", "sub", "--no-tls"])
     assert cli.DEFAULT_HOST == "ftp.fradkin.com"
-    assert cli.DEFAULT_REMOTE_DIR == "public-html/live coding/around-the-world-nov-2026"
+    assert cli.DEFAULT_BASE_DIR == "public_html/live coding"
+
+
+def test_cli_requires_a_subdirectory():
+    with pytest.raises(SystemExit) as e:
+        _load_cli().main(["somedir"])
+    assert e.value.code == 2
+
+
+def test_remote_path_joins_base_and_subdirectory():
+    remote_path = _load_cli().remote_path
+    assert remote_path("public_html/live coding", "around-the-world-nov-2026") == (
+        "public_html/live coding/around-the-world-nov-2026"
+    )
+    assert remote_path("public_html/live coding/", " a/b/ ") == "public_html/live coding/a/b"
+
+
+@pytest.mark.parametrize("bad", ["", "  ", "/", "/abs", "../escape", "ok/../../escape", "./x"])
+def test_remote_path_rejects_subdirectories_that_are_empty_absolute_or_escape_the_base(bad):
+    with pytest.raises(ValueError):
+        _load_cli().remote_path("public_html/live coding", bad)
+
+
+def test_cli_rejects_bad_subdirectory_before_prompting_or_connecting(monkeypatch):
+    cli = _load_cli()
+
+    def no_prompt(prompt: str = "") -> str:
+        raise AssertionError("should not prompt")
+
+    monkeypatch.setattr("builtins.input", no_prompt)
+    with pytest.raises(SystemExit) as e:
+        cli.main(["somedir", "../escape"])
+    assert e.value.code == 2
 
 
 def test_integration_files_and_created_dirs_get_requested_permissions(local_dir, ftp_server):
     home, port = ftp_server
     _real_backup(port).upload_dir(str(local_dir))
 
-    dest = home / "public-html" / "live coding" / "stream"
+    dest = home / "public_html" / "live coding" / "stream"
     assert stat.S_IMODE((dest / "a.flv").stat().st_mode) == 0o644
     assert stat.S_IMODE((dest / "b.flv").stat().st_mode) == 0o644
-    for d in (home / "public-html", home / "public-html" / "live coding", dest):
+    for d in (home / "public_html", home / "public_html" / "live coding", dest):
         assert stat.S_IMODE(d.stat().st_mode) == 0o755
 
 
 def test_integration_rerun_repairs_permissions_of_already_uploaded_files(local_dir, ftp_server):
     home, port = ftp_server
     _real_backup(port).upload_dir(str(local_dir))
-    target = home / "public-html" / "live coding" / "stream" / "a.flv"
+    target = home / "public_html" / "live coding" / "stream" / "a.flv"
     target.chmod(0o600)
 
     summary = _real_backup(port).upload_dir(str(local_dir))
@@ -499,9 +533,9 @@ def test_cli_file_mode_flag(local_dir, ftp_server, monkeypatch):
     _prompts(monkeypatch, cli)
 
     code = cli.main(
-        [str(local_dir), "--host", "127.0.0.1", "--port", str(port), "--remote-dir", "x", "--file-mode", "600"],
+        [str(local_dir), "x", "--host", "127.0.0.1", "--port", str(port), "--base-dir", "base", "--file-mode", "600"],
         tls=False,
     )
 
     assert code == 0
-    assert stat.S_IMODE((home / "x" / "a.flv").stat().st_mode) == 0o600
+    assert stat.S_IMODE((home / "base" / "x" / "a.flv").stat().st_mode) == 0o600

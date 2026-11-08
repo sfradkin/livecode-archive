@@ -1,6 +1,9 @@
 """Back up the files in a local directory to an FTP host over FTPS.
 
-Usage: uv run backup-to-ftp.py <local_dir> [--host HOST] [--remote-dir DIR] [--file-mode 644] [--dir-mode 755] [--dry-run]
+Usage: uv run backup-to-ftp.py <local_dir> <subdirectory> [--host HOST] [--base-dir DIR] [--file-mode 644]
+       [--dir-mode 755] [--dry-run]
+
+Files go to <base-dir>/<subdirectory> on the server; the base directory defaults to "public_html/live coding".
 
 You are prompted for the FTP username and password; nothing is stored. Files already on the server with the same
 size are skipped, so it is safe to re-run after an interruption.
@@ -14,19 +17,28 @@ import sys
 from utils.ftpbackup import DEFAULT_DIR_MODE, DEFAULT_FILE_MODE, FtpBackup
 
 DEFAULT_HOST = "ftp.fradkin.com"
-DEFAULT_REMOTE_DIR = "public-html/live coding/around-the-world-nov-2026"
+DEFAULT_BASE_DIR = "public_html/live coding"
+
+
+def remote_path(base_dir: str, subdirectory: str) -> str:
+    """Join the base dir and the subdirectory, refusing a subdirectory that is empty or would leave the base dir."""
+    parts = [p for p in subdirectory.strip().split("/") if p]
+    if not parts or subdirectory.strip().startswith("/") or ".." in parts or "." in parts:
+        raise ValueError(f"invalid subdirectory {subdirectory!r}: give a relative name like 'my-stream-2026'")
+    return base_dir.rstrip("/") + "/" + "/".join(parts)
 
 
 def main(argv: list[str] | None = None, tls: bool = True) -> int:
     # tls is only ever False in tests that talk to a plain local server; there is no command-line way to disable it
     parser = argparse.ArgumentParser(description="Back up a local directory to an FTP host over FTPS.")
     parser.add_argument("local_dir", help="directory containing the files to upload")
+    parser.add_argument("subdirectory", help="subdirectory of the base directory to upload into, e.g. my-stream-2026")
     parser.add_argument("--host", default=DEFAULT_HOST, help=f"FTP host (default: {DEFAULT_HOST})")
     parser.add_argument("--port", type=int, default=21, help="FTP port (default: 21)")
     parser.add_argument(
-        "--remote-dir",
-        default=DEFAULT_REMOTE_DIR,
-        help=f"remote directory, relative to the FTP login directory (default: {DEFAULT_REMOTE_DIR})",
+        "--base-dir",
+        default=DEFAULT_BASE_DIR,
+        help=f"remote base directory, relative to the FTP login directory (default: {DEFAULT_BASE_DIR})",
     )
     parser.add_argument(
         "--file-mode",
@@ -43,6 +55,11 @@ def main(argv: list[str] | None = None, tls: bool = True) -> int:
     parser.add_argument("--dry-run", action="store_true", help="list what would be uploaded without uploading")
     args = parser.parse_args(argv)
 
+    try:
+        remote_dir = remote_path(args.base_dir, args.subdirectory)
+    except ValueError as e:
+        parser.error(str(e))
+
     username = input("FTP username: ")
     password = getpass.getpass("FTP password: ")
 
@@ -50,7 +67,7 @@ def main(argv: list[str] | None = None, tls: bool = True) -> int:
         args.host,
         username,
         password,
-        args.remote_dir,
+        remote_dir,
         port=args.port,
         tls=tls,
         file_mode=args.file_mode,
