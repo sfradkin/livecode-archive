@@ -6,7 +6,7 @@ black==26.10.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   livecode-archive (pyproject.toml)
-certifi==2026.10.18
+certifi==2026.10.23
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   requests
@@ -20,7 +20,7 @@ charset-normalizer==3.5.2
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   requests
-click==8.5.0
+click==8.5.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   black
@@ -38,7 +38,7 @@ ffmpeg-python==0.2.0
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   livecode-archive (pyproject.toml)
-filelock==4.2.1
+filelock==4.2.9
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   python-discovery
@@ -74,7 +74,7 @@ googleapis-common-protos==1.76.0
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   google-api-core
-httplib2==0.32.0
+httplib2==0.32.1
     # via
     #   -c /private/tmp/claude-501/-Users-scottfradkin-code-livecode-archive/d0c2619c-fa50-4978-8d49-76cd5a0691ed/scratchpad/nop-requirements-dev.txt
     #   google-api-python-client
