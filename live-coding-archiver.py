@@ -15,6 +15,7 @@ from unidecode import unidecode
 from utils.archiveorgupload import ArchiveOrgUpload
 from utils.configreader import ConfigReader
 from utils.jsonloader import JsonLoader
+from utils.setlist import write_setlist
 from utils.templater import Templater
 from utils.youtubeupload import YouTubeUpload
 
@@ -160,6 +161,7 @@ VIDEO_TITLE_TEMPLATE_KEY = "video_title_template"
 VIDEO_DESCR_TEMPLATE_KEY = "video_description_template"
 ARCHIVE_ID_PREFIX_KEY = "archive_id_prefix"
 DEFAULT_TAGS_KEY = "default_tags"
+STREAM_TITLE_KEY = "stream_title"
 
 logging.basicConfig(filename="archiver.log", encoding="utf-8", level=logging.DEBUG)
 
@@ -373,3 +375,19 @@ for result in results:
         print(f"skipping processing for performance {result['publisher_name']} due to no video files")
 
     logging.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+
+# all performances are archived, now generate the set list and archive it as well
+if livecode_config[CONFIG_GLOBAL]["skipArchiveOrg"] != "True":
+    setlist_title = livecode_config[CONFIG_STREAM][STREAM_TITLE_KEY]
+    setlist_id = livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + "setlist"
+    setlist_file = write_setlist(
+        setlist_title, results, livecode_config[CONFIG_GLOBAL]["video_file_location"] + setlist_id + ".txt"
+    )
+    print(f"generated set list: {setlist_file}")
+    logging.info(f"generated set list: {setlist_file}")
+
+    archiveorg_upload.uploadSetlist(setlist_file, setlist_id, setlist_title)
+    cleanupFile(setlist_file)
+else:
+    print("skipping set list generation and archive.org upload")
+    logging.info("skipping set list generation and archive.org upload")
