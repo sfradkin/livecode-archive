@@ -1,21 +1,18 @@
 import html
 import logging
 import os
-import re
 import shutil
-import string
 import subprocess
 import sys
 
 import ffmpeg  # pip install ffmpeg-python
 import requests
 from tqdm import tqdm
-from unidecode import unidecode
 
 from utils.archiveorgupload import ArchiveOrgUpload
 from utils.configreader import ConfigReader
 from utils.jsonloader import JsonLoader
-from utils.setlist import write_setlist
+from utils.setlist import build_archive_id, write_setlist
 from utils.templater import Templater
 from utils.youtubeupload import YouTubeUpload
 
@@ -200,6 +197,7 @@ processed_normal_limit = 200
 processed_merge_limit = 200
 
 archive_urls: list[str] = []
+archive_ids: dict[str, str] = {}
 processed_publishers = []
 pub_inc = 1
 
@@ -226,20 +224,16 @@ for result in results:
 
                 merge_file = mergeFiles(result_recs)
 
-                publisher_name = result["publisher_name"].lower().replace(" ", "-")
-                punct_chars = re.escape(string.punctuation)
-                publisher_name = re.sub(r"[" + punct_chars + "]", "-", publisher_name)
-                publisher_name = unidecode(publisher_name).replace(" ", "-")
-
-                if pub_inc > 1:
-                    publisher_name = f"{publisher_name}-{pub_inc}"
+                archive_id = build_archive_id(
+                    result["publisher_name"], livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY], pub_inc
+                )
 
                 description = html.escape(result["description"])
                 artist_name = html.escape(result["publisher_name"])
                 title = html.escape(result["title"])
 
                 result_data = {
-                    "archive_id": livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
+                    "archive_id": archive_id,
                     "files": merge_file,
                     "artist_name_title": artist_name[
                         0:40
@@ -271,7 +265,9 @@ for result in results:
                 # upload to archive.org
                 if livecode_config[CONFIG_GLOBAL]["skipArchiveOrg"] != "True":
                     # invoke archive.org upload
-                    archiveorg_upload.uploadFile(result_data, templates)
+                    if archiveorg_upload.uploadFile(result_data, templates):
+                        # remember the item id so the set list can link to it
+                        archive_ids[result["url"]] = result_data["archive_id"]
                     print("completed archive.org upload")
                     logging.info("completed archive.org upload")
                     archive_urls.append("https://archive.org/details/" + result_data["archive_id"])
@@ -293,20 +289,16 @@ for result in results:
                     livecode_config[CONFIG_GLOBAL]["video_file_location"],
                 )
 
-                publisher_name = result["publisher_name"].lower().replace(" ", "-")
-                punct_chars = re.escape(string.punctuation)
-                publisher_name = re.sub(r"[" + punct_chars + "]", "-", publisher_name)
-                publisher_name = unidecode(publisher_name).replace(" ", "-")
-
-                if pub_inc > 1:
-                    publisher_name = f"{publisher_name}-{pub_inc}"
+                archive_id = build_archive_id(
+                    result["publisher_name"], livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY], pub_inc
+                )
 
                 description = html.escape(result["description"])
                 artist_name = html.escape(result["publisher_name"])
                 title = html.escape(result["title"])
 
                 result_data = {
-                    "archive_id": livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + publisher_name,
+                    "archive_id": archive_id,
                     "files": local_file,
                     "artist_name_title": artist_name[
                         0:40
@@ -338,7 +330,9 @@ for result in results:
                 # upload to archive.org
                 if livecode_config[CONFIG_GLOBAL]["skipArchiveOrg"] != "True":
                     # invoke archive.org upload
-                    archiveorg_upload.uploadFile(result_data, templates)
+                    if archiveorg_upload.uploadFile(result_data, templates):
+                        # remember the item id so the set list can link to it
+                        archive_ids[result["url"]] = result_data["archive_id"]
                     print("completed archive.org upload")
                     logging.info("completed archive.org upload")
                     archive_urls.append("https://archive.org/details/" + result_data["archive_id"])
@@ -381,7 +375,10 @@ if livecode_config[CONFIG_GLOBAL]["skipArchiveOrg"] != "True":
     setlist_title = livecode_config[CONFIG_STREAM][STREAM_TITLE_KEY]
     setlist_id = livecode_config[CONFIG_STREAM][ARCHIVE_ID_PREFIX_KEY] + "setlist"
     setlist_file = write_setlist(
-        setlist_title, results, livecode_config[CONFIG_GLOBAL]["video_file_location"] + setlist_id + ".txt"
+        setlist_title,
+        results,
+        livecode_config[CONFIG_GLOBAL]["video_file_location"] + setlist_id + ".txt",
+        archive_ids,
     )
     print(f"generated set list: {setlist_file}")
     logging.info(f"generated set list: {setlist_file}")

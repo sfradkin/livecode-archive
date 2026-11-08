@@ -18,7 +18,7 @@ class ArchiveOrgUpload:
         # nothing to configure at this point in time
         pass
 
-    def uploadFile(self, row_data: dict, templates: Templater) -> None:
+    def uploadFile(self, row_data: dict, templates: Templater) -> bool:
 
         description = self.HTML_WRAPPER_PRE + templates.getDescription(row_data) + self.HTML_WRAPPER_POST
         description = Templater.replaceLbForAO(description)
@@ -44,10 +44,11 @@ class ArchiveOrgUpload:
             results = upload(file_id, files=[row_data["files"]], metadata=meta_data, verbose=True)
             print(f"completed uploading file: {row_data['files']}, url: {results[0].url}")
             logging.info(f"completed uploading file: {row_data['files']}, url: {results[0].url}")
+            return True
         except Exception as e:
             print(f"An error occurred: {e}")
             logging.debug(f"An error occurred: {e}")
-            pass
+            return False
 
     def uploadSetlist(self, file_path: str, archive_id: str, title: str) -> None:
         try:
