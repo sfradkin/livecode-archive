@@ -1,6 +1,7 @@
 import ftplib
 import importlib.util
 import ssl
+import stat
 import threading
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,9 @@ class FakeServer:
         self.fail_next_stors = 0  # raise a dropped-connection error for this many STOR calls
         self.fail_stors_for: set[str] = set()  # always fail STOR for these (final) names
         self.supports_mlsd = True
+        self.modes: dict[tuple[str, ...], int] = {}  # (dir parts..., name) -> mode set via SITE CHMOD
+        self.chmod_unsupported = False  # answer SITE CHMOD with 500 for everything
+        self.chmod_fails_for: set[str] = set()  # answer SITE CHMOD with 550 for these names
 
     def put(self, remote_dir: tuple[str, ...], name: str, data: bytes) -> None:
         for i in range(len(remote_dir) + 1):
@@ -65,6 +69,13 @@ class FakeFTP:
         self.server.dirs.add((*self.cwd_parts, part))
 
     def voidcmd(self, cmd: str) -> str:
+        if cmd.startswith("SITE CHMOD "):
+            _, _, mode, name = cmd.split(" ", 3)
+            if self.server.chmod_unsupported:
+                raise ftplib.error_perm("500 SITE CHMOD not understood")
+            if name in self.server.chmod_fails_for:
+                raise ftplib.error_perm("550 permission denied")
+            self.server.modes[(*self.cwd_parts, name)] = int(mode, 8)
         return "200 ok"
 
     def _files(self) -> dict[str, bytes]:
@@ -266,6 +277,70 @@ def test_default_connection_is_verified_tls(monkeypatch):
     assert captured["connect"] == ("ftp.example.com", 21)
 
 
+def test_uploaded_files_get_644_and_created_dirs_get_755(local_dir):
+    server = FakeServer()
+    _backup(server).upload_dir(str(local_dir))
+
+    assert server.modes[(*REMOTE, "a.flv")] == 0o644
+    assert server.modes[(*REMOTE, "b.flv")] == 0o644
+    assert server.modes[("public-html",)] == 0o755
+    assert server.modes[("public-html", "live coding")] == 0o755
+    assert server.modes[REMOTE] == 0o755
+
+
+def test_existing_directories_are_not_chmodded(local_dir):
+    server = FakeServer()
+    server.put(("public-html",), "index.html", b"x")  # public-html already exists
+    _backup(server).upload_dir(str(local_dir))
+
+    assert ("public-html",) not in server.modes
+    assert server.modes[("public-html", "live coding")] == 0o755
+
+
+def test_skipped_files_are_chmodded_too(local_dir):
+    server = FakeServer()
+    server.put(REMOTE, "a.flv", b"aaaa")
+    summary = _backup(server).upload_dir(str(local_dir))
+
+    assert summary.skipped == ["a.flv"]
+    assert server.modes[(*REMOTE, "a.flv")] == 0o644
+
+
+def test_custom_modes_are_applied(local_dir):
+    server = FakeServer()
+    _backup(server, file_mode=0o600, dir_mode=0o700).upload_dir(str(local_dir))
+
+    assert server.modes[(*REMOTE, "a.flv")] == 0o600
+    assert server.modes[REMOTE] == 0o700
+
+
+def test_chmod_refused_for_a_file_is_recorded_not_ignored(local_dir):
+    server = FakeServer()
+    server.chmod_fails_for = {"a.flv"}
+    summary = _backup(server).upload_dir(str(local_dir))
+
+    assert summary.chmod_failed == ["a.flv"]
+    assert "a.flv" in summary.uploaded  # the upload itself still counts
+    assert (*REMOTE, "b.flv") in server.modes
+
+
+def test_server_without_site_chmod_fails_before_uploading_anything(local_dir):
+    server = FakeServer()
+    server.chmod_unsupported = True
+    with pytest.raises(ftplib.error_perm):
+        _backup(server).upload_dir(str(local_dir))
+
+    assert server.stor_calls == []
+
+
+def test_dry_run_does_not_chmod(local_dir):
+    server = FakeServer()
+    server.put(REMOTE, "a.flv", b"aaaa")
+    _backup(server).upload_dir(str(local_dir), dry_run=True)
+
+    assert server.modes == {}
+
+
 # ---------------------------------------------------------------- integration tests (pyftpdlib on localhost)
 
 
@@ -393,3 +468,40 @@ def test_cli_has_no_flag_to_disable_tls():
         cli.main(["somedir", "--no-tls"])
     assert cli.DEFAULT_HOST == "ftp.fradkin.com"
     assert cli.DEFAULT_REMOTE_DIR == "public-html/live coding/around-the-world-nov-2026"
+
+
+def test_integration_files_and_created_dirs_get_requested_permissions(local_dir, ftp_server):
+    home, port = ftp_server
+    _real_backup(port).upload_dir(str(local_dir))
+
+    dest = home / "public-html" / "live coding" / "stream"
+    assert stat.S_IMODE((dest / "a.flv").stat().st_mode) == 0o644
+    assert stat.S_IMODE((dest / "b.flv").stat().st_mode) == 0o644
+    for d in (home / "public-html", home / "public-html" / "live coding", dest):
+        assert stat.S_IMODE(d.stat().st_mode) == 0o755
+
+
+def test_integration_rerun_repairs_permissions_of_already_uploaded_files(local_dir, ftp_server):
+    home, port = ftp_server
+    _real_backup(port).upload_dir(str(local_dir))
+    target = home / "public-html" / "live coding" / "stream" / "a.flv"
+    target.chmod(0o600)
+
+    summary = _real_backup(port).upload_dir(str(local_dir))
+
+    assert summary.uploaded == []
+    assert stat.S_IMODE(target.stat().st_mode) == 0o644
+
+
+def test_cli_file_mode_flag(local_dir, ftp_server, monkeypatch):
+    home, port = ftp_server
+    cli = _load_cli()
+    _prompts(monkeypatch, cli)
+
+    code = cli.main(
+        [str(local_dir), "--host", "127.0.0.1", "--port", str(port), "--remote-dir", "x", "--file-mode", "600"],
+        tls=False,
+    )
+
+    assert code == 0
+    assert stat.S_IMODE((home / "x" / "a.flv").stat().st_mode) == 0o600

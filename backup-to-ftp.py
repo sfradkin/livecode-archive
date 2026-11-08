@@ -1,6 +1,6 @@
 """Back up the files in a local directory to an FTP host over FTPS.
 
-Usage: uv run backup-to-ftp.py <local_dir> [--host HOST] [--remote-dir DIR] [--dry-run]
+Usage: uv run backup-to-ftp.py <local_dir> [--host HOST] [--remote-dir DIR] [--file-mode 644] [--dir-mode 755] [--dry-run]
 
 You are prompted for the FTP username and password; nothing is stored. Files already on the server with the same
 size are skipped, so it is safe to re-run after an interruption.
@@ -11,7 +11,7 @@ import getpass
 import ssl
 import sys
 
-from utils.ftpbackup import FtpBackup
+from utils.ftpbackup import DEFAULT_DIR_MODE, DEFAULT_FILE_MODE, FtpBackup
 
 DEFAULT_HOST = "ftp.fradkin.com"
 DEFAULT_REMOTE_DIR = "public-html/live coding/around-the-world-nov-2026"
@@ -28,13 +28,34 @@ def main(argv: list[str] | None = None, tls: bool = True) -> int:
         default=DEFAULT_REMOTE_DIR,
         help=f"remote directory, relative to the FTP login directory (default: {DEFAULT_REMOTE_DIR})",
     )
+    parser.add_argument(
+        "--file-mode",
+        type=lambda s: int(s, 8),
+        default=DEFAULT_FILE_MODE,
+        help=f"octal permissions for uploaded files (default: {DEFAULT_FILE_MODE:o})",
+    )
+    parser.add_argument(
+        "--dir-mode",
+        type=lambda s: int(s, 8),
+        default=DEFAULT_DIR_MODE,
+        help=f"octal permissions for directories this script creates (default: {DEFAULT_DIR_MODE:o})",
+    )
     parser.add_argument("--dry-run", action="store_true", help="list what would be uploaded without uploading")
     args = parser.parse_args(argv)
 
     username = input("FTP username: ")
     password = getpass.getpass("FTP password: ")
 
-    backup = FtpBackup(args.host, username, password, args.remote_dir, port=args.port, tls=tls)
+    backup = FtpBackup(
+        args.host,
+        username,
+        password,
+        args.remote_dir,
+        port=args.port,
+        tls=tls,
+        file_mode=args.file_mode,
+        dir_mode=args.dir_mode,
+    )
 
     try:
         summary = backup.upload_dir(args.local_dir, dry_run=args.dry_run)
@@ -52,7 +73,9 @@ def main(argv: list[str] | None = None, tls: bool = True) -> int:
     print(f"uploaded {len(summary.uploaded)}, skipped {len(summary.skipped)}, failed {len(summary.failed)}")
     for name in summary.failed:
         print(f"  FAILED: {name}", file=sys.stderr)
-    return 1 if summary.failed else 0
+    for name in summary.chmod_failed:
+        print(f"  PERMISSIONS NOT SET: {name} (server rejected SITE CHMOD)", file=sys.stderr)
+    return 1 if summary.failed or summary.chmod_failed else 0
 
 
 if __name__ == "__main__":

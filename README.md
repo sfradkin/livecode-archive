@@ -110,4 +110,8 @@ into `public-html/live coding/around-the-world-nov-2026` (relative to the FTP lo
 - `--dry-run` lists what would be uploaded without uploading or creating directories.
 - Files are uploaded as `<name>.part` and renamed once complete, and files already on the server with the same size
   are skipped, so it is safe to re-run after an interruption. A dropped connection is retried up to 3 times per file.
-- The exit code is non-zero if any file failed.
+- Uploaded files are set to `644` and directories the script creates to `755` using `SITE CHMOD` (override with
+  `--file-mode` / `--dir-mode`, octal). Files skipped as already present are chmod-ed too, so a re-run repairs
+  permissions from an earlier run. Files under `public-html` with these modes can be served by the web server.
+- The exit code is non-zero if any file failed or its permissions could not be set. A server that does not support
+  `SITE CHMOD` fails right away, before anything is uploaded.

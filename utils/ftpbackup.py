@@ -12,6 +12,8 @@ from tqdm import tqdm
 BLOCK_SIZE = 1024 * 1024  # 1 MB
 MAX_ATTEMPTS = 3
 PART_SUFFIX = ".part"
+DEFAULT_FILE_MODE = 0o644  # rw-r--r--
+DEFAULT_DIR_MODE = 0o755  # rwxr-xr-x
 
 
 @dataclass
@@ -20,6 +22,7 @@ class BackupSummary:
     skipped: list[str] = field(default_factory=list)
     failed: list[str] = field(default_factory=list)
     would_upload: list[str] = field(default_factory=list)  # dry runs only
+    chmod_failed: list[str] = field(default_factory=list)  # files on the server whose permissions could not be set
 
 
 class FtpBackup:
@@ -27,6 +30,9 @@ class FtpBackup:
 
     Files are uploaded under a temporary ``.part`` name and renamed once the remote size matches, so a file under
     its final name is always complete. Re-runs therefore skip any file whose remote size equals the local size.
+
+    Uploaded files get ``file_mode`` and newly created directories get ``dir_mode`` via ``SITE CHMOD``. Skipped files
+    are chmod-ed too, so a re-run also repairs the permissions of files from an earlier run.
     """
 
     def __init__(
@@ -39,6 +45,8 @@ class FtpBackup:
         tls: bool = True,
         timeout: int = 60,
         retry_delay: float = 2.0,
+        file_mode: int = DEFAULT_FILE_MODE,
+        dir_mode: int = DEFAULT_DIR_MODE,
         ftp_factory: Callable[..., Any] | None = None,
     ):
         self.host = host
@@ -50,6 +58,8 @@ class FtpBackup:
         self.tls = tls
         self.timeout = timeout
         self.retry_delay = retry_delay
+        self.file_mode = file_mode
+        self.dir_mode = dir_mode
         self._ftp_factory = ftp_factory or self._default_factory
 
     def _default_factory(self, host: str, port: int, timeout: int) -> Any:
@@ -84,8 +94,13 @@ class FtpBackup:
                 if not create:
                     return False
                 ftp.mkd(part)
+                self._chmod(ftp, part, self.dir_mode)
                 ftp.cwd(part)
         return True
+
+    @staticmethod
+    def _chmod(ftp: Any, name: str, mode: int) -> None:
+        ftp.voidcmd(f"SITE CHMOD {mode:o} {name}")
 
     @staticmethod
     def _close(ftp: Any) -> None:
@@ -168,11 +183,15 @@ class FtpBackup:
                 path = os.path.join(local_dir, name)
                 if remote_sizes.get(name) == os.path.getsize(path):
                     summary.skipped.append(name)
+                    if not dry_run:
+                        ftp = self._chmod_with_retries(ftp, name, summary)
                     continue
                 if dry_run:
                     summary.would_upload.append(name)
                     continue
                 ftp = self._upload_with_retries(ftp, path, summary)
+                if name in summary.uploaded:
+                    ftp = self._chmod_with_retries(ftp, name, summary)
         finally:
             if ftp is not None:
                 self._close(ftp)
@@ -198,4 +217,27 @@ class FtpBackup:
                     time.sleep(self.retry_delay)
 
         summary.failed.append(name)
+        return ftp
+
+    def _chmod_with_retries(self, ftp: Any, name: str, summary: BackupSummary) -> Any:
+        """Set the file mode on a file that is on the server. Failure is recorded, not silently ignored."""
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            try:
+                if ftp is None:
+                    ftp, _ = self._connect(create_dir=True)
+                self._chmod(ftp, name, self.file_mode)
+                return ftp
+            except ftplib.error_perm as e:
+                # the server answered and refused (e.g. 500/502 SITE CHMOD unsupported): retrying will not help
+                logging.warning(f"could not set permissions on {name}: {e}")
+                break
+            except ftplib.all_errors as e:
+                logging.warning(f"chmod of {name} failed (attempt {attempt}/{MAX_ATTEMPTS}): {e}")
+                if ftp is not None:
+                    self._close(ftp)
+                    ftp = None
+                if attempt < MAX_ATTEMPTS:
+                    time.sleep(self.retry_delay)
+
+        summary.chmod_failed.append(name)
         return ftp
