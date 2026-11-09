@@ -4,25 +4,17 @@ import os
 import ssl
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from typing import Any
 
 from tqdm import tqdm
+
+from utils.backupcommon import BackupSummary, local_files
 
 BLOCK_SIZE = 1024 * 1024  # 1 MB
 MAX_ATTEMPTS = 3
 PART_SUFFIX = ".part"
 DEFAULT_FILE_MODE = 0o644  # rw-r--r--
 DEFAULT_DIR_MODE = 0o755  # rwxr-xr-x
-
-
-@dataclass
-class BackupSummary:
-    uploaded: list[str] = field(default_factory=list)
-    skipped: list[str] = field(default_factory=list)
-    failed: list[str] = field(default_factory=list)
-    would_upload: list[str] = field(default_factory=list)  # dry runs only
-    chmod_failed: list[str] = field(default_factory=list)  # files on the server whose permissions could not be set
 
 
 class FtpBackup:
@@ -140,14 +132,6 @@ class FtpBackup:
                 sizes[name] = size
         return sizes
 
-    @staticmethod
-    def _local_files(local_dir: str) -> list[str]:
-        return sorted(
-            name
-            for name in os.listdir(local_dir)
-            if not name.startswith(".") and os.path.isfile(os.path.join(local_dir, name))
-        )
-
     def _upload_file(self, ftp: Any, local_path: str) -> None:
         name = os.path.basename(local_path)
         part_name = name + PART_SUFFIX
@@ -173,7 +157,7 @@ class FtpBackup:
     def upload_dir(self, local_dir: str, dry_run: bool = False) -> BackupSummary:
         """Upload every regular, non-hidden file in ``local_dir`` (not recursive)."""
         summary = BackupSummary()
-        names = self._local_files(local_dir)
+        names = local_files(local_dir)
 
         # connect first so bad credentials or certificates fail before any work; dry runs never create directories
         ftp, dir_exists = self._connect(create_dir=not dry_run)

@@ -14,6 +14,7 @@ import getpass
 import ssl
 import sys
 
+from utils.backupcommon import clean_subdirectory
 from utils.ftpbackup import DEFAULT_DIR_MODE, DEFAULT_FILE_MODE, FtpBackup
 
 # The FTP server's TLS certificate (Let's Encrypt) is issued for the hosting server's own hostname, not for
@@ -24,10 +25,7 @@ DEFAULT_BASE_DIR = "public_html/live coding"
 
 def remote_path(base_dir: str, subdirectory: str) -> str:
     """Join the base dir and the subdirectory, refusing a subdirectory that is empty or would leave the base dir."""
-    parts = [p for p in subdirectory.strip().split("/") if p]
-    if not parts or subdirectory.strip().startswith("/") or ".." in parts or "." in parts:
-        raise ValueError(f"invalid subdirectory {subdirectory!r}: give a relative name like 'my-stream-2026'")
-    return base_dir.rstrip("/") + "/" + "/".join(parts)
+    return base_dir.rstrip("/") + "/" + clean_subdirectory(subdirectory)
 
 
 def main(argv: list[str] | None = None, tls: bool = True) -> int:

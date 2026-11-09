@@ -12,12 +12,15 @@ maintainers = [
        {name = "Scott Fradkin", email = "scott@fradkin.com"}
 ]
 requires-python = ">=3.12"
-dependencies = ["internetarchive",
-                "google-api-python-client",
-                "google-auth-oauthlib",
-                "ffmpeg-python",
-                "tqdm",
-                "unidecode"]
+dependencies = [
+    "internetarchive",
+    "google-api-python-client",
+    "google-auth-oauthlib",
+    "ffmpeg-python",
+    "tqdm",
+    "unidecode",
+    "boto3>=1.43.126",
+]
 
 [dependency-groups]
 dev = [
@@ -28,6 +31,7 @@ dev = [
     "types-requests",
     "detect-secrets",
     "pyftpdlib>=2.2.0",
+    "moto[s3]>=5.2.5",
 ]
 
 [tool.ruff]
