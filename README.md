@@ -120,3 +120,24 @@ fails certificate verification (hostname mismatch), and the script deliberately 
   permissions from an earlier run. Files under `public_html` with these modes can be served by the web server.
 - The exit code is non-zero if any file failed or its permissions could not be set. A server that does not support
   `SITE CHMOD` fails right away, before anything is uploaded.
+
+### S3
+
+Push a directory of recordings to the live coding S3 bucket, into the same folder name used on the FTP host:
+
+`uv run backup-to-s3.py <local_dir> <subdirectory>`, for example:
+
+`uv run backup-to-s3.py ~/Downloads/nov-2026-stream/recordings around-the-world-nov-2026`
+
+Files go to `s3://live-coding-42406474-571c-402b-a18c-3d42d1e32c9a/<subdirectory>/<file>`. Credentials come from the
+standard AWS sources (environment variables or `~/.aws`); nothing is prompted or stored. Use `--profile` to pick a
+named profile, `--region` to override the region, and `--bucket` to use a different bucket.
+
+- `--dry-run` lists what would be uploaded without uploading anything. It also checks that your credentials can list
+  the bucket.
+- Objects use the `INTELLIGENT_TIERING` storage class, matching the existing recordings (override with
+  `--storage-class`). Large files are uploaded in parallel 64 MB parts.
+- S3 only shows an object once it is complete, so files already in the bucket with the same size are skipped and it is
+  safe to re-run after an interruption. A failed upload is retried up to 3 times per file.
+- Missing credentials, a missing bucket or denied access stop the run right away (exit code 2). The exit code is 1 if
+  any file failed to upload. Access is governed by the bucket's policy; the bucket has Block Public Access on.
